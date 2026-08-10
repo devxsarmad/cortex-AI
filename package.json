@@ -1,0 +1,25 @@
+{
+  "name": "cortex-ai",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @cortex/api & npm run dev --workspace @cortex/web",
+    "dev:api": "npm run dev --workspace @cortex/api",
+    "dev:web": "npm run dev --workspace @cortex/web",
+    "build": "npm run build --workspace @cortex/api && npm run build --workspace @cortex/web",
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "npm run lint --workspaces",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "jiti": "^2.7.0"
+  }
+}
