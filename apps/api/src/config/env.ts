@@ -13,6 +13,7 @@ const envSchema = z.object({
   CLIENT_ORIGIN: z.string().url().default("http://localhost:3000"),
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
+  OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   AI_TEMPERATURE: z.string().optional()
 });
 
@@ -20,9 +21,10 @@ const parsedEnv = envSchema.parse(process.env);
 
 export const env = {
   nodeEnv: parsedEnv.NODE_ENV,
-  port: optionalNumber(parsedEnv.PORT, 8000),
+  port: optionalNumber(parsedEnv.PORT, 4000),
   clientOrigin: parsedEnv.CLIENT_ORIGIN,
   openaiApiKey: parsedEnv.OPENAI_API_KEY,
   openaiModel: parsedEnv.OPENAI_MODEL,
+  openaiEmbeddingModel: parsedEnv.OPENAI_EMBEDDING_MODEL,
   aiTemperature: optionalNumber(parsedEnv.AI_TEMPERATURE, 0.3)
 };

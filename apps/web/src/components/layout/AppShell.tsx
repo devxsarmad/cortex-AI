@@ -12,10 +12,9 @@ export function AppShell({ provider, children }: AppShellProps) {
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Cortex Health</h1>
+            <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Cortex AI</h1>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-              Clinical knowledge assistant for careful research, summaries, and patient-friendly
-              explanations.
+              Knowledge assistant for grounded answers, document retrieval, and agent workflows.
             </p>
           </div>
           <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
@@ -29,22 +28,22 @@ export function AppShell({ provider, children }: AppShellProps) {
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">Workspace</h2>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                <Button className="w-full justify-start text-left">New consultation</Button>
+                <Button className="w-full justify-start text-left">New chat</Button>
                 <Button variant="secondary" className="w-full text-left">
-                  Medical summary
+                  Knowledge base
                 </Button>
                 <Button variant="secondary" className="w-full text-left">
-                  Patient explanation
+                  Retrieval test
                 </Button>
                 <Button variant="secondary" className="w-full text-left">
-                  Research question
+                  Agent trace
                 </Button>
               </div>
             </div>
 
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-              Cortex supports healthcare research and education. It does not replace professional
-              medical judgment.
+            <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-900">
+              Upload text sources first, then connect embeddings and vector search in the next
+              pipeline chunk.
             </div>
           </aside>
 

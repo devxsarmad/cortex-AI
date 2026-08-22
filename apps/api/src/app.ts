@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { env } from "./config/env.js";
 import { chatRouter } from "./modules/chat/chat.routes.js";
+import { documentRouter } from "./modules/documents/document.routes.js";
 import { errorHandler } from "./shared/errors/error-handler.js";
 
 export const createApp = () => {
@@ -22,6 +23,7 @@ export const createApp = () => {
   });
 
   app.use("/api/chat", chatRouter);
+  app.use("/api/documents", documentRouter);
   app.use(errorHandler);
 
   return app;

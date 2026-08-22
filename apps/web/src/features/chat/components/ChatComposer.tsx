@@ -32,7 +32,7 @@ export function ChatComposer({ isStreaming, onSubmit }: ChatComposerProps) {
             formRef.current?.requestSubmit();
           }
         }}
-        placeholder="Ask a healthcare knowledge question..."
+        placeholder="Ask a question about your knowledge base..."
         rows={2}
         className="flex-1"
       />
