@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import { HttpStatus } from "../../shared/constants/http-status.js";
-import { documentIdSchema } from "./document.validation.js";
+import { documentIdSchema, searchDocumentsSchema } from "./document.validation.js";
 import { documentService } from "./document.service.js";
 
 export const uploadDocument: RequestHandler = async (request, response) => {
@@ -32,5 +32,23 @@ export const listDocumentChunks: RequestHandler = (request, response) => {
 
   response.json({
     chunks
+  });
+};
+
+export const retryDocument: RequestHandler = async (request, response) => {
+  const { id } = documentIdSchema.parse(request.params);
+  const document = await documentService.retryDocument(id);
+
+  response.json({
+    document: documentService.getDocumentDetail(document.id)
+  });
+};
+
+export const searchDocuments: RequestHandler = async (request, response) => {
+  const input = searchDocumentsSchema.parse(request.body);
+  const results = await documentService.searchDocuments(input);
+
+  response.json({
+    results
   });
 };

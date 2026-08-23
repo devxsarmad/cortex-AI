@@ -1,7 +1,14 @@
 import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../../shared/middleware/async-handler.js";
-import { getDocument, listDocumentChunks, listDocuments, uploadDocument } from "./document.controller.js";
+import {
+  getDocument,
+  listDocumentChunks,
+  listDocuments,
+  retryDocument,
+  searchDocuments,
+  uploadDocument
+} from "./document.controller.js";
 
 export const documentRouter = Router();
 
@@ -14,6 +21,8 @@ const upload = multer({
 });
 
 documentRouter.get("/", asyncHandler(listDocuments));
+documentRouter.post("/search", asyncHandler(searchDocuments));
 documentRouter.get("/:id/chunks", asyncHandler(listDocumentChunks));
 documentRouter.get("/:id", asyncHandler(getDocument));
+documentRouter.post("/:id/retry", asyncHandler(retryDocument));
 documentRouter.post("/", upload.single("file"), asyncHandler(uploadDocument));

@@ -22,14 +22,16 @@ export class EmbeddingService {
   async embedDocumentText(text: string): Promise<EmbeddedChunk[]> {
     const chunks = chunkText(text);
     const vectors = await this.embeddingClient.embedTexts(chunks.map((chunk) => chunk.content));
-console.log(chunks.map((chunk, index) => ({
-      ...chunk,
-      embedding: vectors[index] ?? []
-    })))
+
     return chunks.map((chunk, index) => ({
       ...chunk,
       embedding: vectors[index] ?? []
     }));
+  }
+
+  async embedQuery(text: string) {
+    const [embedding] = await this.embeddingClient.embedTexts([text]);
+    return embedding ?? [];
   }
 }
 

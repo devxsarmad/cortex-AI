@@ -14,7 +14,10 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
-  AI_TEMPERATURE: z.string().optional()
+  AI_TEMPERATURE: z.string().optional(),
+  VECTOR_STORE_PROVIDER: z.enum(["memory", "qdrant"]).default("memory"),
+  QDRANT_URL: z.string().url().default("http://localhost:6333"),
+  QDRANT_COLLECTION: z.string().default("cortex_chunks")
 });
 
 const parsedEnv = envSchema.parse(process.env);
@@ -26,5 +29,8 @@ export const env = {
   openaiApiKey: parsedEnv.OPENAI_API_KEY,
   openaiModel: parsedEnv.OPENAI_MODEL,
   openaiEmbeddingModel: parsedEnv.OPENAI_EMBEDDING_MODEL,
-  aiTemperature: optionalNumber(parsedEnv.AI_TEMPERATURE, 0.3)
+  aiTemperature: optionalNumber(parsedEnv.AI_TEMPERATURE, 0.3),
+  vectorStoreProvider: parsedEnv.VECTOR_STORE_PROVIDER,
+  qdrantUrl: parsedEnv.QDRANT_URL.replace(/\/$/, ""),
+  qdrantCollection: parsedEnv.QDRANT_COLLECTION
 };

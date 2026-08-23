@@ -1,6 +1,7 @@
 export type EmbeddingProvider = "openai" | "mock";
+export type VectorStoreProvider = "memory" | "qdrant";
 
-export type DocumentStatus = "ready" | "needs_parser" | "failed";
+export type DocumentStatus = "uploaded" | "processing" | "ready" | "needs_parser" | "failed";
 
 export type DocumentSummary = {
   id: string;
@@ -11,7 +12,12 @@ export type DocumentSummary = {
   characterCount: number;
   chunkCount: number;
   embeddingProvider: EmbeddingProvider | null;
+  vectorStoreProvider: VectorStoreProvider | null;
+  errorMessage: string | null;
+  processingAttempts: number;
   createdAt: string;
+  updatedAt: string;
+  processedAt: string | null;
 };
 
 export type DocumentDetail = DocumentSummary & {
@@ -28,4 +34,17 @@ export type DocumentChunk = {
   embedding: number[];
   embeddingProvider: EmbeddingProvider;
   createdAt: string;
+};
+
+export type DocumentSearchResult = {
+  id: string;
+  documentId: string;
+  filename: string;
+  chunkIndex: number;
+  content: string;
+  characterCount: number;
+  tokenEstimate: number;
+  embeddingProvider: EmbeddingProvider;
+  createdAt: string;
+  score: number;
 };

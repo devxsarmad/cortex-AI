@@ -1,6 +1,7 @@
 import type { EmbeddedChunk, EmbeddingProvider } from "../embeddings/embedding.types.js";
+import type { VectorSearchResult, VectorStoreProvider } from "../../infrastructure/vector-db/vector-store.types.js";
 
-export type DocumentStatus = "ready" | "needs_parser" | "failed";
+export type DocumentStatus = "uploaded" | "processing" | "ready" | "needs_parser" | "failed";
 
 export type DocumentChunk = EmbeddedChunk & {
   id: string;
@@ -19,7 +20,12 @@ export type DocumentRecord = {
   characterCount: number;
   chunkCount: number;
   embeddingProvider: EmbeddingProvider | null;
+  vectorStoreProvider: VectorStoreProvider | null;
+  errorMessage: string | null;
+  processingAttempts: number;
   createdAt: string;
+  updatedAt: string;
+  processedAt: string | null;
   chunks: DocumentChunk[];
 };
 
@@ -36,4 +42,8 @@ export type ListDocumentsResponse = {
 
 export type ListDocumentChunksResponse = {
   chunks: DocumentChunk[];
+};
+
+export type SearchDocumentsResponse = {
+  results: VectorSearchResult[];
 };
