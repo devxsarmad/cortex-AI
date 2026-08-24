@@ -3,6 +3,7 @@ export type ApiErrorResponse = {
   details?: unknown;
 };
 
+
 export type ChatRole = "user" | "assistant";
 
 export type ChatMessageDto = {
