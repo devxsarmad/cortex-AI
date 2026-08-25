@@ -1,0 +1,13 @@
+Cortex AI Retrieval Test Document
+
+Cortex AI stores uploaded knowledge as document chunks. Each chunk is converted into an embedding vector before it is saved in the vector store.
+
+The current local vector store is memory mode. Memory mode is useful for development because it does not require Docker or Qdrant.
+
+Qdrant is the production-style vector database option for Cortex AI. When VECTOR_STORE_PROVIDER is set to qdrant, Cortex sends document chunk vectors to the Qdrant collection named cortex_chunks.
+
+The assistant should only use retrieved document chunks for grounded answers once the RAG chunk is connected to chat.
+
+Test fact: the secret project codename in this sample document is Blue Lantern.
+
+Test fact: the retrieval quality checklist has three items: upload succeeds, chunks are created, and search returns the relevant snippet.

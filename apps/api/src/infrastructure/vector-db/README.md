@@ -7,6 +7,7 @@ Current chunk:
 - `VectorStore` interface owns upsert and search.
 - Memory vector store is the default for local development.
 - Qdrant vector store is available when `VECTOR_STORE_PROVIDER=qdrant`.
+- Vector stores can remove all points for a document when a source is deleted.
 - Qdrant collection defaults to `cortex_chunks`.
 - Qdrant URL defaults to `http://localhost:6333`.
 

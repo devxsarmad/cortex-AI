@@ -46,4 +46,12 @@ export class MemoryVectorStore implements VectorStore {
       .sort((left, right) => right.score - left.score)
       .slice(0, input.limit);
   }
+
+  async deleteByDocumentId(documentId: string) {
+    for (const [pointId, point] of this.points.entries()) {
+      if (point.documentId === documentId) {
+        this.points.delete(pointId);
+      }
+    }
+  }
 }

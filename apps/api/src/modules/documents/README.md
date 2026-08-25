@@ -10,6 +10,7 @@ Current chunk:
 - `GET /api/documents/:id/chunks` returns generated chunks and embeddings.
 - `POST /api/documents/search` embeds a query and returns top matching chunks.
 - `POST /api/documents/:id/retry` reruns processing for failed documents with extracted text.
+- `DELETE /api/documents/:id` removes the document metadata and its vector-store points.
 - TXT, Markdown, JSON, and CSV files are extracted in memory.
 - Extracted text is split into overlapping chunks and embedded through the embeddings module.
 - Embedded chunks are upserted into the configured vector store before the document is marked `ready`.

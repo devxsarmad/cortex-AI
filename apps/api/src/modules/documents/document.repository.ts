@@ -5,6 +5,7 @@ export interface DocumentRepository {
   list(): DocumentRecord[];
   findById(id: string): DocumentRecord | undefined;
   update(id: string, patch: Partial<DocumentRecord>): DocumentRecord | undefined;
+  delete(id: string): boolean;
 }
 
 export class InMemoryDocumentRepository implements DocumentRepository {
@@ -34,6 +35,10 @@ export class InMemoryDocumentRepository implements DocumentRepository {
 
     this.documents.set(id, nextDocument);
     return nextDocument;
+  }
+
+  delete(id: string) {
+    return this.documents.delete(id);
   }
 }
 

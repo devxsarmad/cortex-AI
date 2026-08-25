@@ -23,4 +23,5 @@ export interface VectorStore {
   readonly provider: VectorStoreProvider;
   upsert(points: VectorPoint[]): Promise<void>;
   search(input: { embedding: number[]; limit: number; documentId?: string }): Promise<VectorSearchResult[]>;
+  deleteByDocumentId(documentId: string): Promise<void>;
 }

@@ -96,6 +96,24 @@ export class QdrantVectorStore implements VectorStore {
     });
   }
 
+  async deleteByDocumentId(documentId: string) {
+    await qdrantRequest(`/collections/${env.qdrantCollection}/points/delete?wait=true`, {
+      method: "POST",
+      body: JSON.stringify({
+        filter: {
+          must: [
+            {
+              key: "documentId",
+              match: {
+                value: documentId
+              }
+            }
+          ]
+        }
+      })
+    });
+  }
+
   private async ensureCollection(vectorSize: number) {
     if (this.collectionReadyForSize === vectorSize) return;
 

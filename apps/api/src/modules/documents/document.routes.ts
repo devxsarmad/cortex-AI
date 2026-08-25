@@ -2,6 +2,7 @@ import { Router } from "express";
 import multer from "multer";
 import { asyncHandler } from "../../shared/middleware/async-handler.js";
 import {
+  deleteDocument,
   getDocument,
   listDocumentChunks,
   listDocuments,
@@ -24,5 +25,6 @@ documentRouter.get("/", asyncHandler(listDocuments));
 documentRouter.post("/search", asyncHandler(searchDocuments));
 documentRouter.get("/:id/chunks", asyncHandler(listDocumentChunks));
 documentRouter.get("/:id", asyncHandler(getDocument));
+documentRouter.delete("/:id", asyncHandler(deleteDocument));
 documentRouter.post("/:id/retry", asyncHandler(retryDocument));
 documentRouter.post("/", upload.single("file"), asyncHandler(uploadDocument));

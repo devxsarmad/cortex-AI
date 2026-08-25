@@ -17,6 +17,15 @@ export const listDocuments: RequestHandler = (_request, response) => {
   });
 };
 
+export const deleteDocument: RequestHandler = async (request, response) => {
+  const { id } = documentIdSchema.parse(request.params);
+  await documentService.deleteDocument(id);
+
+  response.json({
+    documentId: id
+  });
+};
+
 export const getDocument: RequestHandler = (request, response) => {
   const { id } = documentIdSchema.parse(request.params);
   const document = documentService.getDocumentDetail(id);

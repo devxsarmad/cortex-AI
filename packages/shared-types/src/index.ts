@@ -87,3 +87,7 @@ export type SearchDocumentsDto = {
 export type SearchDocumentsResponseDto = {
   results: DocumentSearchResultDto[];
 };
+
+export type DeleteDocumentResponseDto = {
+  documentId: string;
+};

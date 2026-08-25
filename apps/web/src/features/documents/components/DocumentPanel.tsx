@@ -2,7 +2,13 @@
 
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { listDocuments, retryDocument, searchDocuments, uploadDocument } from "@/services/document.service";
+import {
+  deleteDocument,
+  listDocuments,
+  retryDocument,
+  searchDocuments,
+  uploadDocument
+} from "@/services/document.service";
 import type { DocumentSearchResult, DocumentSummary } from "../types/document.types";
 
 const formatBytes = (bytes: number) => {
@@ -38,6 +44,7 @@ export function DocumentPanel() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [retryingDocumentId, setRetryingDocumentId] = useState<string | null>(null);
+  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<DocumentSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -90,6 +97,20 @@ export function DocumentPanel() {
       setError(retryError instanceof Error ? retryError.message : "Document retry failed.");
     } finally {
       setRetryingDocumentId(null);
+    }
+  };
+
+  const handleDelete = async (documentId: string) => {
+    try {
+      setDeletingDocumentId(documentId);
+      setError(null);
+      const deletedDocumentId = await deleteDocument(documentId);
+      setDocuments((current) => current.filter((document) => document.id !== deletedDocumentId));
+      setSearchResults((current) => current.filter((result) => result.documentId !== deletedDocumentId));
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : "Could not remove document.");
+    } finally {
+      setDeletingDocumentId(null);
     }
   };
 
@@ -178,6 +199,14 @@ export function DocumentPanel() {
                     {retryingDocumentId === document.id ? "Retrying" : "Retry"}
                   </Button>
                 )}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={deletingDocumentId === document.id}
+                  onClick={() => void handleDelete(document.id)}
+                >
+                  {deletingDocumentId === document.id ? "Removing" : "Remove"}
+                </Button>
               </div>
             </article>
           ))}

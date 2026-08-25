@@ -47,3 +47,7 @@ export type ListDocumentChunksResponse = {
 export type SearchDocumentsResponse = {
   results: VectorSearchResult[];
 };
+
+export type DeleteDocumentResponse = {
+  documentId: string;
+};

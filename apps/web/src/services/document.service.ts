@@ -23,6 +23,10 @@ type SearchDocumentsResponse = {
   results: DocumentSearchResult[];
 };
 
+type DeleteDocumentResponse = {
+  documentId: string;
+};
+
 export const uploadDocument = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
@@ -97,4 +101,18 @@ export const searchDocuments = async (query: string, limit = 5, documentId?: str
 
   const payload = (await response.json()) as SearchDocumentsResponse;
   return payload.results;
+};
+
+export const deleteDocument = async (documentId: string) => {
+  const response = await fetch(`${API_URL}/api/documents/${documentId}`, {
+    method: "DELETE"
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new Error(payload?.error ?? "Could not remove document.");
+  }
+
+  const payload = (await response.json()) as DeleteDocumentResponse;
+  return payload.documentId;
 };

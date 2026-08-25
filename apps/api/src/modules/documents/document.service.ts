@@ -102,6 +102,12 @@ export class DocumentService {
     return this.processDocument(document.id, document.extractedText);
   }
 
+  async deleteDocument(id: string) {
+    this.getDocument(id);
+    await vectorStore.deleteByDocumentId(id);
+    this.repository.delete(id);
+  }
+
   listDocuments(): DocumentSummary[] {
     return this.repository
       .list()
