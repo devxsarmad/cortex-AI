@@ -27,6 +27,24 @@ export function MessageList({ messages }: MessageListProps) {
             )}
           >
             <p className="whitespace-pre-wrap">{message.content || "..."}</p>
+            {message.role === "assistant" && message.sources && message.sources.length > 0 && (
+              <div className="mt-3 border-t border-slate-200 pt-3">
+                <p className="text-xs font-medium text-slate-600">Sources</p>
+                <div className="mt-2 space-y-2">
+                  {message.sources.map((source, index) => (
+                    <div key={source.id} className="rounded-md border border-slate-200 bg-white px-3 py-2">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-xs font-medium text-slate-700">
+                          [S{index + 1}] {source.filename} chunk {source.chunkIndex}
+                        </span>
+                        <span className="text-xs text-slate-500">Score {source.score.toFixed(3)}</span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{source.content}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </article>
       ))}

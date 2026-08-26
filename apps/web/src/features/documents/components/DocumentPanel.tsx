@@ -1,15 +1,14 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   deleteDocument,
   listDocuments,
   retryDocument,
-  searchDocuments,
   uploadDocument
 } from "@/services/document.service";
-import type { DocumentSearchResult, DocumentSummary } from "../types/document.types";
+import type { DocumentSummary } from "../types/document.types";
 
 const formatBytes = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -42,11 +41,8 @@ export function DocumentPanel() {
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const [retryingDocumentId, setRetryingDocumentId] = useState<string | null>(null);
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<DocumentSearchResult[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,26 +102,10 @@ export function DocumentPanel() {
       setError(null);
       const deletedDocumentId = await deleteDocument(documentId);
       setDocuments((current) => current.filter((document) => document.id !== deletedDocumentId));
-      setSearchResults((current) => current.filter((result) => result.documentId !== deletedDocumentId));
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Could not remove document.");
     } finally {
       setDeletingDocumentId(null);
-    }
-  };
-
-  const handleSearch = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!searchQuery.trim()) return;
-
-    try {
-      setIsSearching(true);
-      setError(null);
-      setSearchResults(await searchDocuments(searchQuery.trim()));
-    } catch (searchError) {
-      setError(searchError instanceof Error ? searchError.message : "Document search failed.");
-    } finally {
-      setIsSearching(false);
     }
   };
 
@@ -211,34 +191,6 @@ export function DocumentPanel() {
             </article>
           ))}
       </div>
-
-      <form className="mt-4 border-t border-slate-200 pt-4" onSubmit={(event) => void handleSearch(event)}>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <input
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            placeholder="Search uploaded knowledge..."
-            className="min-h-10 flex-1 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus:border-slate-500"
-          />
-          <Button type="submit" disabled={isSearching || !searchQuery.trim()}>
-            {isSearching ? "Searching" : "Search"}
-          </Button>
-        </div>
-
-        {searchResults.length > 0 && (
-          <div className="mt-3 grid gap-2">
-            {searchResults.map((result) => (
-              <article key={result.id} className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                  <h3 className="truncate text-sm font-medium text-slate-900">{result.filename}</h3>
-                  <span className="text-xs text-slate-500">Score {result.score.toFixed(3)}</span>
-                </div>
-                <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{result.content}</p>
-              </article>
-            ))}
-          </div>
-        )}
-      </form>
     </section>
   );
 }

@@ -43,6 +43,11 @@ export const useChat = () => {
       await streamChat({
         messages: nextMessages.filter((message) => message.id !== assistantMessage.id),
         onMeta: (meta) => setProvider(meta.provider),
+        onSources: (sources) => {
+          setMessages((current) =>
+            current.map((message) => (message.id === assistantMessage.id ? { ...message, sources } : message))
+          );
+        },
         onToken: (token) => {
           setMessages((current) =>
             current.map((message) =>

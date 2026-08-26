@@ -1,7 +1,6 @@
 import type {
   DocumentChunk,
   DocumentDetail,
-  DocumentSearchResult,
   DocumentSummary
 } from "@/features/documents/types/document.types";
 
@@ -17,10 +16,6 @@ type ListDocumentsResponse = {
 
 type ListDocumentChunksResponse = {
   chunks: DocumentChunk[];
-};
-
-type SearchDocumentsResponse = {
-  results: DocumentSearchResult[];
 };
 
 type DeleteDocumentResponse = {
@@ -79,28 +74,6 @@ export const retryDocument = async (documentId: string) => {
 
   const payload = (await response.json()) as UploadDocumentResponse;
   return payload.document;
-};
-
-export const searchDocuments = async (query: string, limit = 5, documentId?: string) => {
-  const response = await fetch(`${API_URL}/api/documents/search`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      query,
-      limit,
-      documentId
-    })
-  });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error ?? "Document search failed.");
-  }
-
-  const payload = (await response.json()) as SearchDocumentsResponse;
-  return payload.results;
 };
 
 export const deleteDocument = async (documentId: string) => {

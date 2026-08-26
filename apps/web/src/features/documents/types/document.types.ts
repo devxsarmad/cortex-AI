@@ -35,16 +35,3 @@ export type DocumentChunk = {
   embeddingProvider: EmbeddingProvider;
   createdAt: string;
 };
-
-export type DocumentSearchResult = {
-  id: string;
-  documentId: string;
-  filename: string;
-  chunkIndex: number;
-  content: string;
-  characterCount: number;
-  tokenEstimate: number;
-  embeddingProvider: EmbeddingProvider;
-  createdAt: string;
-  score: number;
-};
