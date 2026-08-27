@@ -7,5 +7,6 @@ export const documentIdSchema = z.object({
 export const searchDocumentsSchema = z.object({
   query: z.string().trim().min(1).max(1000),
   limit: z.number().int().min(1).max(20).default(5),
-  documentId: z.string().uuid().optional()
+  documentId: z.string().uuid().optional(),
+  documentIds: z.array(z.string().uuid()).max(20).optional()
 });

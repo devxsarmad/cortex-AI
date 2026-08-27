@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 
 const suggestedPrompts = [
-  "Summarize hypertension risk factors",
-  "Explain HbA1c in simple terms",
-  "Draft patient-friendly discharge guidance"
+  "Summarize the selected sources",
+  "Compare the uploaded documents",
+  "List key facts with citations"
 ];
 
 type PromptSuggestionsProps = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   deleteDocument,
@@ -36,7 +36,16 @@ const pipelineLabel = (document: DocumentSummary) => {
   return `${document.chunkCount} chunks | ${provider} embeddings | ${vectorStore} vectors`;
 };
 
-export function DocumentPanel() {
+const areSameDocumentIds = (left: string[], right: string[]) => {
+  return left.length === right.length && left.every((item, index) => item === right[index]);
+};
+
+type DocumentPanelProps = {
+  selectedDocumentIds: string[];
+  onSelectedDocumentIdsChange: (documentIds: string[]) => void;
+};
+
+export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange }: DocumentPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -45,26 +54,39 @@ export function DocumentPanel() {
   const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    void refreshDocuments();
-  }, []);
-
   const readyCount = useMemo(
     () => documents.filter((document) => document.status === "ready").length,
     [documents]
   );
+  const selectedReadyCount = useMemo(
+    () =>
+      documents.filter((document) => document.status === "ready" && selectedDocumentIds.includes(document.id)).length,
+    [documents, selectedDocumentIds]
+  );
 
-  const refreshDocuments = async () => {
+  const refreshDocuments = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      setDocuments(await listDocuments());
+      const nextDocuments = await listDocuments();
+      const readyIds = new Set(
+        nextDocuments.filter((document) => document.status === "ready").map((document) => document.id)
+      );
+      setDocuments(nextDocuments);
+      const nextSelectedDocumentIds = selectedDocumentIds.filter((documentId) => readyIds.has(documentId));
+      if (!areSameDocumentIds(selectedDocumentIds, nextSelectedDocumentIds)) {
+        onSelectedDocumentIdsChange(nextSelectedDocumentIds);
+      }
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load documents.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [onSelectedDocumentIdsChange, selectedDocumentIds]);
+
+  useEffect(() => {
+    void refreshDocuments();
+  }, [refreshDocuments]);
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -75,6 +97,9 @@ export function DocumentPanel() {
       setError(null);
       const document = await uploadDocument(file);
       setDocuments((current) => [document, ...current.filter((item) => item.id !== document.id)]);
+      if (document.status === "ready") {
+        onSelectedDocumentIdsChange([...selectedDocumentIds, document.id]);
+      }
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Document upload failed.");
     } finally {
@@ -89,6 +114,9 @@ export function DocumentPanel() {
       setError(null);
       const document = await retryDocument(documentId);
       setDocuments((current) => current.map((item) => (item.id === document.id ? document : item)));
+      if (document.status === "ready" && !selectedDocumentIds.includes(document.id)) {
+        onSelectedDocumentIdsChange([...selectedDocumentIds, document.id]);
+      }
     } catch (retryError) {
       setError(retryError instanceof Error ? retryError.message : "Document retry failed.");
     } finally {
@@ -102,6 +130,7 @@ export function DocumentPanel() {
       setError(null);
       const deletedDocumentId = await deleteDocument(documentId);
       setDocuments((current) => current.filter((document) => document.id !== deletedDocumentId));
+      onSelectedDocumentIdsChange(selectedDocumentIds.filter((item) => item !== deletedDocumentId));
     } catch (deleteError) {
       setError(deleteError instanceof Error ? deleteError.message : "Could not remove document.");
     } finally {
@@ -115,7 +144,7 @@ export function DocumentPanel() {
         <div>
           <h2 className="text-sm font-semibold text-slate-900">Knowledge sources</h2>
           <p className="mt-1 text-sm text-slate-600">
-            {documents.length} uploaded, {readyCount} ready for retrieval storage
+            {documents.length} uploaded, {readyCount} ready, {selectedReadyCount} selected for chat
           </p>
         </div>
 
@@ -158,13 +187,29 @@ export function DocumentPanel() {
               key={document.id}
               className="flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="min-w-0">
-                <h3 className="truncate text-sm font-medium text-slate-900">{document.filename}</h3>
-                <p className="mt-1 text-xs text-slate-500">
-                  {formatBytes(document.sizeBytes)} | {document.characterCount.toLocaleString()} chars
-                </p>
-                <p className="mt-1 text-xs text-slate-500">{pipelineLabel(document)}</p>
-              </div>
+              <label className="flex min-w-0 flex-1 items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedDocumentIds.includes(document.id)}
+                  disabled={document.status !== "ready"}
+                  onChange={(event) => {
+                    if (event.target.checked) {
+                      onSelectedDocumentIdsChange([...selectedDocumentIds, document.id]);
+                      return;
+                    }
+
+                    onSelectedDocumentIdsChange(selectedDocumentIds.filter((item) => item !== document.id));
+                  }}
+                  className="mt-1 h-4 w-4 rounded border-slate-300"
+                />
+                <span className="min-w-0">
+                  <h3 className="truncate text-sm font-medium text-slate-900">{document.filename}</h3>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {formatBytes(document.sizeBytes)} | {document.characterCount.toLocaleString()} chars
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">{pipelineLabel(document)}</p>
+                </span>
+              </label>
               <div className="flex items-center gap-2">
                 <span className="w-fit rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700">
                   {statusLabel[document.status]}

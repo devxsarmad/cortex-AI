@@ -132,12 +132,13 @@ export class DocumentService {
     return this.getDocument(id).chunks;
   }
 
-  async searchDocuments(input: { query: string; limit: number; documentId?: string }) {
+  async searchDocuments(input: { query: string; limit: number; documentId?: string; documentIds?: string[] }) {
     const embedding = await embeddingService.embedQuery(input.query);
     return vectorStore.search({
       embedding,
       limit: input.limit,
-      documentId: input.documentId
+      documentId: input.documentId,
+      documentIds: input.documentIds
     });
   }
 

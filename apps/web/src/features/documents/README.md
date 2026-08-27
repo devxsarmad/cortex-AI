@@ -9,5 +9,6 @@ Current chunk:
 - Shows basic status, size, and extracted character count.
 - Shows generated chunk count and embedding provider.
 - Understands upload, processing, ready, parser-needed, and failed states.
+- Lets users select which ready sources are used by chat retrieval.
 - Removes uploaded sources with `DELETE /api/documents/:id`.
 - Accepts TXT, Markdown, JSON, CSV, and PDF to match the API.

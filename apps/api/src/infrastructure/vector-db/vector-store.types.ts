@@ -19,9 +19,16 @@ export type VectorSearchResult = Omit<VectorPoint, "embedding"> & {
   score: number;
 };
 
+export type VectorSearchInput = {
+  embedding: number[];
+  limit: number;
+  documentId?: string;
+  documentIds?: string[];
+};
+
 export interface VectorStore {
   readonly provider: VectorStoreProvider;
   upsert(points: VectorPoint[]): Promise<void>;
-  search(input: { embedding: number[]; limit: number; documentId?: string }): Promise<VectorSearchResult[]>;
+  search(input: VectorSearchInput): Promise<VectorSearchResult[]>;
   deleteByDocumentId(documentId: string): Promise<void>;
 }

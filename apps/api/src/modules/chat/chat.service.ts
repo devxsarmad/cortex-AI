@@ -14,22 +14,41 @@ const formatSse = (event: string, data: unknown) => {
 
 const MIN_RAG_SCORE = 0.2;
 const RAG_SOURCE_LIMIT = 4;
+const RAG_CANDIDATE_LIMIT = 12;
+const MAX_SOURCES_PER_DOCUMENT = 2;
 
 const getLatestUserMessage = (input: StreamChatRequest) => {
   return [...input.messages].reverse().find((message) => message.role === "user");
 };
 
+const shouldRetrieve = (input: StreamChatRequest) => {
+  return !input.documentIds || input.documentIds.length > 0;
+};
+
 const toChatSources = (results: Awaited<ReturnType<typeof documentService.searchDocuments>>): ChatSource[] => {
-  return results
-    .filter((result) => result.score >= MIN_RAG_SCORE)
-    .map((result) => ({
+  const sourceCounts = new Map<string, number>();
+  const sources: ChatSource[] = [];
+
+  for (const result of results) {
+    if (result.score < MIN_RAG_SCORE) continue;
+
+    const currentCount = sourceCounts.get(result.documentId) ?? 0;
+    if (currentCount >= MAX_SOURCES_PER_DOCUMENT) continue;
+
+    sourceCounts.set(result.documentId, currentCount + 1);
+    sources.push({
       id: result.id,
       documentId: result.documentId,
       filename: result.filename,
       chunkIndex: result.chunkIndex,
       content: result.content,
       score: result.score
-    }));
+    });
+
+    if (sources.length >= RAG_SOURCE_LIMIT) break;
+  }
+
+  return sources;
 };
 
 export class ChatService {
@@ -42,11 +61,12 @@ export class ChatService {
       async start(controller) {
         try {
           const latestUserMessage = getLatestUserMessage(input);
-          const sources = latestUserMessage
+          const sources = latestUserMessage && shouldRetrieve(input)
             ? toChatSources(
                 await documentService.searchDocuments({
                   query: latestUserMessage.content,
-                  limit: RAG_SOURCE_LIMIT
+                  limit: RAG_CANDIDATE_LIMIT,
+                  documentIds: input.documentIds
                 })
               )
             : [];
@@ -54,6 +74,7 @@ export class ChatService {
             provider: llmClient.provider,
             retrieval: {
               sourceCount: sources.length,
+              scopedDocumentCount: input.documentIds?.length ?? 0,
               vectorStoreProvider: vectorStore.provider
             }
           };

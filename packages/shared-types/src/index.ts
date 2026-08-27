@@ -13,6 +13,7 @@ export type ChatMessageDto = {
 
 export type StreamChatDto = {
   messages: ChatMessageDto[];
+  documentIds?: string[];
 };
 
 export type DocumentStatus = "uploaded" | "processing" | "ready" | "needs_parser" | "failed";
@@ -82,6 +83,7 @@ export type SearchDocumentsDto = {
   query: string;
   limit?: number;
   documentId?: string;
+  documentIds?: string[];
 };
 
 export type SearchDocumentsResponseDto = {

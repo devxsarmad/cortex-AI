@@ -7,6 +7,7 @@ export type ChatMessage = {
 
 export type StreamChatRequest = {
   messages: ChatMessage[];
+  documentIds?: string[];
 };
 
 export type ChatSource = {
@@ -22,6 +23,7 @@ export type ChatStreamMeta = {
   provider: string;
   retrieval: {
     sourceCount: number;
+    scopedDocumentCount: number;
     vectorStoreProvider: string;
   };
 };

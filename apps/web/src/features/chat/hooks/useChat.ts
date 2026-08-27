@@ -15,7 +15,11 @@ const starterMessages: ChatMessage[] = [
 
 const createId = () => crypto.randomUUID();
 
-export const useChat = () => {
+type UseChatOptions = {
+  documentIds: string[];
+};
+
+export const useChat = ({ documentIds }: UseChatOptions) => {
   const [messages, setMessages] = useState<ChatMessage[]>(starterMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [provider, setProvider] = useState("not connected");
@@ -42,6 +46,7 @@ export const useChat = () => {
     try {
       await streamChat({
         messages: nextMessages.filter((message) => message.id !== assistantMessage.id),
+        documentIds,
         onMeta: (meta) => setProvider(meta.provider),
         onSources: (sources) => {
           setMessages((current) =>

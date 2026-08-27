@@ -1,4 +1,4 @@
-import type { VectorPoint, VectorSearchResult, VectorStore } from "./vector-store.types.js";
+import type { VectorPoint, VectorSearchInput, VectorSearchResult, VectorStore } from "./vector-store.types.js";
 
 const cosineSimilarity = (left: number[], right: number[]) => {
   const length = Math.min(left.length, right.length);
@@ -39,9 +39,11 @@ export class MemoryVectorStore implements VectorStore {
     }
   }
 
-  async search(input: { embedding: number[]; limit: number; documentId?: string }) {
+  async search(input: VectorSearchInput) {
+    const documentIds = new Set(input.documentIds ?? (input.documentId ? [input.documentId] : []));
+
     return [...this.points.values()]
-      .filter((point) => !input.documentId || point.documentId === input.documentId)
+      .filter((point) => documentIds.size === 0 || documentIds.has(point.documentId))
       .map((point) => toResult(point, cosineSimilarity(input.embedding, point.embedding)))
       .sort((left, right) => right.score - left.score)
       .slice(0, input.limit);

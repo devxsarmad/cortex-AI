@@ -6,5 +6,6 @@ export const chatMessageSchema = z.object({
 });
 
 export const streamChatSchema = z.object({
-  messages: z.array(chatMessageSchema).min(1).max(40)
+  messages: z.array(chatMessageSchema).min(1).max(40),
+  documentIds: z.array(z.string().uuid()).max(20).optional()
 });

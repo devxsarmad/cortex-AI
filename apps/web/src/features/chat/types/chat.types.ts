@@ -20,6 +20,7 @@ export type ChatProviderMeta = {
   provider: string;
   retrieval: {
     sourceCount: number;
+    scopedDocumentCount: number;
     vectorStoreProvider: string;
   };
 };

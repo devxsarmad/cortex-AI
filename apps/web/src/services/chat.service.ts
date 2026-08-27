@@ -2,6 +2,7 @@ import type { ChatMessage, ChatProviderMeta, ChatSource } from "@/features/chat/
 
 type StreamChatOptions = {
   messages: ChatMessage[];
+  documentIds?: string[];
   onToken: (token: string) => void;
   onMeta?: (meta: ChatProviderMeta) => void;
   onSources?: (sources: ChatSource[]) => void;
@@ -18,14 +19,15 @@ const parseSseBlock = (block: string) => {
   };
 };
 
-export const streamChat = async ({ messages, onToken, onMeta, onSources }: StreamChatOptions) => {
+export const streamChat = async ({ messages, documentIds, onToken, onMeta, onSources }: StreamChatOptions) => {
   const response = await fetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      messages: messages.map(({ role, content }) => ({ role, content }))
+      messages: messages.map(({ role, content }) => ({ role, content })),
+      documentIds
     })
   });
 

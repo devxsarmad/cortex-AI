@@ -1,5 +1,5 @@
 import { env } from "../../config/env.js";
-import type { VectorPoint, VectorSearchResult, VectorStore } from "./vector-store.types.js";
+import type { VectorPoint, VectorSearchInput, VectorSearchResult, VectorStore } from "./vector-store.types.js";
 
 type QdrantPoint = {
   id: string;
@@ -55,16 +55,17 @@ export class QdrantVectorStore implements VectorStore {
     });
   }
 
-  async search(input: { embedding: number[]; limit: number; documentId?: string }) {
+  async search(input: VectorSearchInput) {
     await this.ensureCollection(input.embedding.length);
+    const documentIds = input.documentIds ?? (input.documentId ? [input.documentId] : []);
 
-    const filter = input.documentId
+    const filter = documentIds.length > 0
       ? {
           must: [
             {
               key: "documentId",
               match: {
-                value: input.documentId
+                ...(documentIds.length === 1 ? { value: documentIds[0] } : { any: documentIds })
               }
             }
           ]
