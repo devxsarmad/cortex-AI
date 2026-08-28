@@ -1,4 +1,5 @@
-import type { ChatSource } from "./chat.types.js";
+import { PromptTemplate } from "@langchain/core/prompts";
+import type { RagSource } from "../rag/rag.types.js";
 
 export const cortexSystemPrompt = `
 You are Cortex, an AI knowledge assistant for document-grounded research workflows.
@@ -12,14 +13,19 @@ Rules:
 - Keep responses concise unless the user asks for depth.
 `.trim();
 
-export const buildRagSystemPrompt = (sources: ChatSource[]) => {
-  if (sources.length === 0) {
-    return `
-${cortexSystemPrompt}
+const ragPromptTemplate = PromptTemplate.fromTemplate(`
+{systemPrompt}
 
 Retrieved document context:
-No relevant uploaded document chunks were found for this question.
-`.trim();
+{context}
+`.trim());
+
+export const buildRagSystemPrompt = async (sources: RagSource[]) => {
+  if (sources.length === 0) {
+    return ragPromptTemplate.format({
+      systemPrompt: cortexSystemPrompt,
+      context: "No relevant uploaded document chunks were found for this question."
+    });
   }
 
   const context = sources
@@ -29,10 +35,8 @@ No relevant uploaded document chunks were found for this question.
     })
     .join("\n\n");
 
-  return `
-${cortexSystemPrompt}
-
-Retrieved document context:
-${context}
-`.trim();
+  return ragPromptTemplate.format({
+    systemPrompt: cortexSystemPrompt,
+    context
+  });
 };

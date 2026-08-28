@@ -1,3 +1,5 @@
+import type { RagSource } from "../rag/rag.types.js";
+
 export type ChatRole = "user" | "assistant";
 
 export type ChatMessage = {
@@ -10,14 +12,7 @@ export type StreamChatRequest = {
   documentIds?: string[];
 };
 
-export type ChatSource = {
-  id: string;
-  documentId: string;
-  filename: string;
-  chunkIndex: number;
-  content: string;
-  score: number;
-};
+export type ChatSource = RagSource;
 
 export type ChatStreamMeta = {
   provider: string;
