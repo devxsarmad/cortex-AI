@@ -1,4 +1,9 @@
-import type { ChatMessage, ChatProviderMeta, ChatSource } from "@/features/chat/types/chat.types";
+import type {
+  ChatMessage,
+  ChatProviderMeta,
+  ChatSource,
+  ChatToolResult
+} from "@/features/chat/types/chat.types";
 
 type StreamChatOptions = {
   messages: ChatMessage[];
@@ -6,6 +11,7 @@ type StreamChatOptions = {
   onToken: (token: string) => void;
   onMeta?: (meta: ChatProviderMeta) => void;
   onSources?: (sources: ChatSource[]) => void;
+  onTools?: (tools: ChatToolResult[]) => void;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
@@ -19,7 +25,14 @@ const parseSseBlock = (block: string) => {
   };
 };
 
-export const streamChat = async ({ messages, documentIds, onToken, onMeta, onSources }: StreamChatOptions) => {
+export const streamChat = async ({
+  messages,
+  documentIds,
+  onToken,
+  onMeta,
+  onSources,
+  onTools
+}: StreamChatOptions) => {
   const response = await fetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
     headers: {
@@ -54,6 +67,7 @@ export const streamChat = async ({ messages, documentIds, onToken, onMeta, onSou
       if (event === "token") onToken(data.token);
       if (event === "meta") onMeta?.(data);
       if (event === "sources") onSources?.(data.sources);
+      if (event === "tools") onTools?.(data.tools);
       if (event === "error") throw new Error(data.message);
     }
   }

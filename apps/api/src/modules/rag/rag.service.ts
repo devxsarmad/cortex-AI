@@ -2,6 +2,7 @@ import { vectorStore } from "../../infrastructure/vector-db/vector-store.js";
 import { documentService } from "../documents/document.service.js";
 import { buildRagSystemPrompt } from "../chat/chat.prompt.js";
 import type { RagSource, RetrieveSourcesInput } from "./rag.types.js";
+import type { ToolExecution } from "../tools/tool.types.js";
 
 const MIN_RAG_SCORE = 0.2;
 const RAG_SOURCE_LIMIT = 4;
@@ -49,8 +50,8 @@ export class RagService {
     return toRagSources(results);
   }
 
-  async buildSystemPrompt(sources: RagSource[]) {
-    return buildRagSystemPrompt(sources);
+  async buildSystemPrompt(sources: RagSource[], toolResults: ToolExecution[] = []) {
+    return buildRagSystemPrompt(sources, toolResults);
   }
 }
 

@@ -1,4 +1,4 @@
-export type StreamEventName = "meta" | "sources" | "token" | "done" | "error";
+export type StreamEventName = "meta" | "sources" | "tools" | "token" | "done" | "error";
 
 export type StreamEvent<TData = unknown> = {
   event?: StreamEventName;

@@ -5,6 +5,7 @@ export type ChatMessage = {
   role: ChatRole;
   content: string;
   sources?: ChatSource[];
+  tools?: ChatToolResult[];
 };
 
 export type ChatSource = {
@@ -23,4 +24,17 @@ export type ChatProviderMeta = {
     scopedDocumentCount: number;
     vectorStoreProvider: string;
   };
+  tools: {
+    executedCount: number;
+  };
+};
+
+export type ChatToolResult = {
+  id: string;
+  name: "calculator" | "current_time" | "document_stats";
+  label: string;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
+  status: "success" | "error";
+  errorMessage?: string;
 };

@@ -1,4 +1,5 @@
 import type { RagSource } from "../rag/rag.types.js";
+import type { ToolExecution } from "../tools/tool.types.js";
 
 export type ChatRole = "user" | "assistant";
 
@@ -13,6 +14,7 @@ export type StreamChatRequest = {
 };
 
 export type ChatSource = RagSource;
+export type ChatToolResult = ToolExecution;
 
 export type ChatStreamMeta = {
   provider: string;
@@ -20,5 +22,8 @@ export type ChatStreamMeta = {
     sourceCount: number;
     scopedDocumentCount: number;
     vectorStoreProvider: string;
+  };
+  tools: {
+    executedCount: number;
   };
 };

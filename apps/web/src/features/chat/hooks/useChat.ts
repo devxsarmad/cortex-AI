@@ -53,6 +53,11 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
             current.map((message) => (message.id === assistantMessage.id ? { ...message, sources } : message))
           );
         },
+        onTools: (tools) => {
+          setMessages((current) =>
+            current.map((message) => (message.id === assistantMessage.id ? { ...message, tools } : message))
+          );
+        },
         onToken: (token) => {
           setMessages((current) =>
             current.map((message) =>

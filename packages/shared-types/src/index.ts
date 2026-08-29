@@ -16,6 +16,18 @@ export type StreamChatDto = {
   documentIds?: string[];
 };
 
+export type ChatToolNameDto = "calculator" | "current_time" | "document_stats";
+
+export type ChatToolResultDto = {
+  id: string;
+  name: ChatToolNameDto;
+  label: string;
+  input: Record<string, unknown>;
+  output: Record<string, unknown>;
+  status: "success" | "error";
+  errorMessage?: string;
+};
+
 export type DocumentStatus = "uploaded" | "processing" | "ready" | "needs_parser" | "failed";
 
 export type EmbeddingProvider = "openai" | "mock";

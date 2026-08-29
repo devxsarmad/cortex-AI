@@ -2,6 +2,7 @@ import { env } from "../../config/env.js";
 import { createLlmClient } from "../../infrastructure/llm/llm.client.js";
 import type { LlmClient } from "../../infrastructure/llm/llm.types.js";
 import { ragService } from "../rag/rag.service.js";
+import { toolService } from "../tools/tool.service.js";
 import type { ChatStreamMeta, StreamChatRequest } from "./chat.types.js";
 
 const encoder = new TextEncoder();
@@ -34,19 +35,26 @@ export class ChatService {
                 documentIds: input.documentIds
               })
             : [];
+          const toolResults = latestUserMessage
+            ? await toolService.executePlannedTools(latestUserMessage.content)
+            : [];
           const meta: ChatStreamMeta = {
             provider: llmClient.provider,
             retrieval: {
               sourceCount: sources.length,
               scopedDocumentCount: input.documentIds?.length ?? 0,
               vectorStoreProvider: ragService.vectorStoreProvider
+            },
+            tools: {
+              executedCount: toolResults.length
             }
           };
           controller.enqueue(formatSse("meta", meta));
           controller.enqueue(formatSse("sources", { sources }));
+          controller.enqueue(formatSse("tools", { tools: toolResults }));
 
           const completion = llmClient.streamCompletion({
-            systemPrompt: await ragService.buildSystemPrompt(sources),
+            systemPrompt: await ragService.buildSystemPrompt(sources, toolResults),
             messages: input.messages,
             temperature: env.aiTemperature
           });

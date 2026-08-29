@@ -45,6 +45,28 @@ export function MessageList({ messages }: MessageListProps) {
                 </div>
               </div>
             )}
+            {message.role === "assistant" && message.tools && message.tools.length > 0 && (
+              <div className="mt-3 border-t border-slate-200 pt-3">
+                <p className="text-xs font-medium text-slate-600">Tools</p>
+                <div className="mt-2 space-y-2">
+                  {message.tools.map((tool, index) => (
+                    <div key={tool.id} className="rounded-md border border-slate-200 bg-white px-3 py-2">
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-xs font-medium text-slate-700">
+                          [T{index + 1}] {tool.label}
+                        </span>
+                        <span className="text-xs text-slate-500">{tool.status}</span>
+                      </div>
+                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
+                        {tool.status === "success"
+                          ? JSON.stringify(tool.output)
+                          : tool.errorMessage ?? "Tool failed."}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </article>
       ))}
