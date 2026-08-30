@@ -28,6 +28,14 @@ export type ChatToolResultDto = {
   errorMessage?: string;
 };
 
+export type ChatAgentRouteDto = "respond" | "retrieve" | "tools" | "retrieve_and_tools";
+
+export type ChatAgentTraceStepDto = {
+  node: "route" | "retrieve" | "tools" | "prompt";
+  message: string;
+  createdAt: string;
+};
+
 export type DocumentStatus = "uploaded" | "processing" | "ready" | "needs_parser" | "failed";
 
 export type EmbeddingProvider = "openai" | "mock";

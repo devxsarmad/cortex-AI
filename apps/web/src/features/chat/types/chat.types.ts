@@ -27,6 +27,16 @@ export type ChatProviderMeta = {
   tools: {
     executedCount: number;
   };
+  agent: {
+    route: "respond" | "retrieve" | "tools" | "retrieve_and_tools";
+    trace: ChatAgentTraceStep[];
+  };
+};
+
+export type ChatAgentTraceStep = {
+  node: "route" | "retrieve" | "tools" | "prompt";
+  message: string;
+  createdAt: string;
 };
 
 export type ChatToolResult = {

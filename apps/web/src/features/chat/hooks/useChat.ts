@@ -23,6 +23,8 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
   const [messages, setMessages] = useState<ChatMessage[]>(starterMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [provider, setProvider] = useState("not connected");
+  const [agentRoute, setAgentRoute] = useState("idle");
+  const [agentTraceCount, setAgentTraceCount] = useState(0);
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();
@@ -47,7 +49,11 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
       await streamChat({
         messages: nextMessages.filter((message) => message.id !== assistantMessage.id),
         documentIds,
-        onMeta: (meta) => setProvider(meta.provider),
+        onMeta: (meta) => {
+          setProvider(meta.provider);
+          setAgentRoute(meta.agent.route);
+          setAgentTraceCount(meta.agent.trace.length);
+        },
         onSources: (sources) => {
           setMessages((current) =>
             current.map((message) => (message.id === assistantMessage.id ? { ...message, sources } : message))
@@ -86,6 +92,8 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
     messages,
     isStreaming,
     provider,
+    agentRoute,
+    agentTraceCount,
     sendMessage
   };
 };

@@ -4,7 +4,7 @@ import { getCurrentTime } from "./current-time.tool.js";
 import { getDocumentStats } from "./document-stats.tool.js";
 import type { ToolDefinition, ToolExecution, ToolName } from "./tool.types.js";
 
-type PlannedToolCall = {
+export type PlannedToolCall = {
   name: ToolName;
   input: Record<string, unknown>;
 };

@@ -1,3 +1,4 @@
+import type { AgentRoute, AgentTraceStep } from "../agents/agent.types.js";
 import type { RagSource } from "../rag/rag.types.js";
 import type { ToolExecution } from "../tools/tool.types.js";
 
@@ -25,5 +26,9 @@ export type ChatStreamMeta = {
   };
   tools: {
     executedCount: number;
+  };
+  agent: {
+    route: AgentRoute;
+    trace: AgentTraceStep[];
   };
 };

@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 
 type AppShellProps = {
   provider: string;
+  agentRoute: string;
+  agentTraceCount: number;
   children: ReactNode;
 };
 
-export function AppShell({ provider, children }: AppShellProps) {
+export function AppShell({ provider, agentRoute, agentTraceCount, children }: AppShellProps) {
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-ink">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
@@ -17,9 +19,14 @@ export function AppShell({ provider, children }: AppShellProps) {
               Knowledge assistant for grounded answers, document retrieval, and agent workflows.
             </p>
           </div>
-          <div className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm">
-            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
-            <span className="capitalize">{provider}</span>
+          <div className="flex flex-col gap-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm sm:items-end">
+            <div className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
+              <span className="capitalize">{provider}</span>
+            </div>
+            <span className="text-xs capitalize text-slate-500">
+              Route {agentRoute.replaceAll("_", " ")} | {agentTraceCount} steps
+            </span>
           </div>
         </header>
 
