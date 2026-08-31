@@ -23,6 +23,8 @@ export type ChatProviderMeta = {
     sourceCount: number;
     scopedDocumentCount: number;
     vectorStoreProvider: string;
+    strategy: "single_query" | "multi_query" | "comparison" | "none";
+    queryCount: number;
   };
   tools: {
     executedCount: number;
@@ -34,7 +36,7 @@ export type ChatProviderMeta = {
 };
 
 export type ChatAgentTraceStep = {
-  node: "route" | "retrieve" | "tools" | "prompt";
+  node: "route" | "plan" | "retrieve" | "tools" | "prompt";
   message: string;
   createdAt: string;
 };

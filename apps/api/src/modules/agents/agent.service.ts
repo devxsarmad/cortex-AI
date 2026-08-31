@@ -7,6 +7,7 @@ export class AgentService {
 
     return {
       route: result.route,
+      retrievalPlan: result.retrievalPlan,
       sources: result.sources,
       tools: result.tools,
       systemPrompt: result.systemPrompt,

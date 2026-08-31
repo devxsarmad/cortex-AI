@@ -1,7 +1,7 @@
 import { vectorStore } from "../../infrastructure/vector-db/vector-store.js";
 import { documentService } from "../documents/document.service.js";
 import { buildRagSystemPrompt } from "../chat/chat.prompt.js";
-import type { RagSource, RetrieveSourcesInput } from "./rag.types.js";
+import type { RagSource, RetrievalPlan, RetrieveSourcesForQueriesInput, RetrieveSourcesInput } from "./rag.types.js";
 import type { ToolExecution } from "../tools/tool.types.js";
 
 const MIN_RAG_SCORE = 0.2;
@@ -50,8 +50,54 @@ export class RagService {
     return toRagSources(results);
   }
 
-  async buildSystemPrompt(sources: RagSource[], toolResults: ToolExecution[] = []) {
-    return buildRagSystemPrompt(sources, toolResults);
+  async retrieveSourcesForQueries(input: RetrieveSourcesForQueriesInput) {
+    const resultsByQuery = await Promise.all(
+      input.plan.queries.map(async (query) => {
+        const results = await documentService.searchDocuments({
+          query: query.query,
+          limit: RAG_CANDIDATE_LIMIT,
+          documentIds: input.documentIds
+        });
+
+        return {
+          query,
+          sources: toRagSources(results)
+        };
+      })
+    );
+
+    const sourcesById = new Map<string, RagSource>();
+
+    for (const { query, sources } of resultsByQuery) {
+      for (const source of sources) {
+        const existing = sourcesById.get(source.id);
+        if (!existing) {
+          sourcesById.set(source.id, {
+            ...source,
+            matchedQueries: [query.label]
+          });
+          continue;
+        }
+
+        sourcesById.set(source.id, {
+          ...existing,
+          score: Math.max(existing.score, source.score),
+          matchedQueries: [...new Set([...(existing.matchedQueries ?? []), query.label])]
+        });
+      }
+    }
+
+    return [...sourcesById.values()]
+      .sort((left, right) => right.score - left.score)
+      .slice(0, RAG_SOURCE_LIMIT);
+  }
+
+  async buildSystemPrompt(
+    sources: RagSource[],
+    toolResults: ToolExecution[] = [],
+    retrievalPlan?: RetrievalPlan
+  ) {
+    return buildRagSystemPrompt(sources, toolResults, retrievalPlan);
   }
 }
 

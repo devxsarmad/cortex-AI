@@ -1,5 +1,5 @@
 import type { AgentRoute, AgentTraceStep } from "../agents/agent.types.js";
-import type { RagSource } from "../rag/rag.types.js";
+import type { RagSource, RetrievalPlan } from "../rag/rag.types.js";
 import type { ToolExecution } from "../tools/tool.types.js";
 
 export type ChatRole = "user" | "assistant";
@@ -23,6 +23,8 @@ export type ChatStreamMeta = {
     sourceCount: number;
     scopedDocumentCount: number;
     vectorStoreProvider: string;
+    strategy: RetrievalPlan["strategy"] | "none";
+    queryCount: number;
   };
   tools: {
     executedCount: number;

@@ -1,12 +1,12 @@
 import type { ChatMessage } from "../chat/chat.types.js";
-import type { RagSource } from "../rag/rag.types.js";
+import type { RagSource, RetrievalPlan } from "../rag/rag.types.js";
 import type { PlannedToolCall } from "../tools/tool.service.js";
 import type { ToolExecution } from "../tools/tool.types.js";
 
 export type AgentRoute = "respond" | "retrieve" | "tools" | "retrieve_and_tools";
 
 export type AgentTraceStep = {
-  node: "route" | "retrieve" | "tools" | "prompt";
+  node: "route" | "plan" | "retrieve" | "tools" | "prompt";
   message: string;
   createdAt: string;
 };
@@ -18,6 +18,7 @@ export type AgentRunInput = {
 
 export type AgentRunResult = {
   route: AgentRoute;
+  retrievalPlan?: RetrievalPlan;
   sources: RagSource[];
   tools: ToolExecution[];
   systemPrompt: string;
@@ -30,6 +31,7 @@ export type AgentState = {
   latestUserMessage?: ChatMessage;
   route: AgentRoute;
   toolCalls: PlannedToolCall[];
+  retrievalPlan?: RetrievalPlan;
   sources: RagSource[];
   tools: ToolExecution[];
   systemPrompt: string;

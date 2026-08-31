@@ -1,5 +1,6 @@
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import { ragService } from "../rag/rag.service.js";
+import type { RetrievalPlan, RetrievalQuery } from "../rag/rag.types.js";
 import { toolService } from "../tools/tool.service.js";
 import type { AgentRoute, AgentRunInput, AgentState, AgentTraceStep } from "./agent.types.js";
 
@@ -18,6 +19,7 @@ const AgentStateAnnotation = Annotation.Root({
     value: (_left, right) => right,
     default: () => []
   }),
+  retrievalPlan: Annotation<AgentState["retrievalPlan"]>(),
   sources: Annotation<AgentState["sources"]>({
     value: (_left, right) => right,
     default: () => []
@@ -52,10 +54,66 @@ const shouldRetrieve = (input: AgentRunInput) => {
   return !input.documentIds || input.documentIds.length > 0;
 };
 
+const uniqueQueries = (queries: RetrievalQuery[]) => {
+  const seen = new Set<string>();
+  return queries.filter((query) => {
+    const key = query.query.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const createRetrievalPlan = (message: string): RetrievalPlan => {
+  const normalized = message.trim().replace(/\s+/g, " ");
+  const asksForComparison = /\b(compare|comparison|contrast|versus|vs\.?|difference|differences|similarities)\b/i.test(
+    normalized
+  );
+  const asksForSynthesis = /\b(summarize|summary|synthesi[sz]e|key facts|insights|findings|themes)\b/i.test(
+    normalized
+  );
+
+  if (asksForComparison) {
+    return {
+      strategy: "comparison",
+      requiresSynthesis: true,
+      note: "Comparison question detected, so Cortex will retrieve direct evidence and comparison-focused evidence.",
+      queries: uniqueQueries([
+        { id: "q1", label: "Original question", query: normalized },
+        { id: "q2", label: "Similarities evidence", query: `similarities related to ${normalized}` },
+        { id: "q3", label: "Differences evidence", query: `differences related to ${normalized}` }
+      ])
+    };
+  }
+
+  if (asksForSynthesis) {
+    return {
+      strategy: "multi_query",
+      requiresSynthesis: true,
+      note: "Synthesis question detected, so Cortex will retrieve the direct answer and supporting key facts.",
+      queries: uniqueQueries([
+        { id: "q1", label: "Original question", query: normalized },
+        { id: "q2", label: "Key facts", query: `key facts for ${normalized}` },
+        { id: "q3", label: "Supporting evidence", query: `supporting evidence for ${normalized}` }
+      ])
+    };
+  }
+
+  return {
+    strategy: "single_query",
+    requiresSynthesis: false,
+    note: "Single focused retrieval query is enough for this request.",
+    queries: [{ id: "q1", label: "Original question", query: normalized }]
+  };
+};
+
 const routeNode = async (state: typeof AgentStateAnnotation.State) => {
   const latestUserMessage = getLatestUserMessage(state);
   const toolCalls = latestUserMessage ? toolService.planToolCalls(latestUserMessage.content) : [];
   const needsRetrieval = Boolean(latestUserMessage && shouldRetrieve(state));
+  const retrievalPlan = latestUserMessage && needsRetrieval
+    ? createRetrievalPlan(latestUserMessage.content)
+    : undefined;
 
   let route: AgentRoute = "respond";
   if (needsRetrieval && toolCalls.length > 0) route = "retrieve_and_tools";
@@ -65,15 +123,21 @@ const routeNode = async (state: typeof AgentStateAnnotation.State) => {
   return {
     latestUserMessage,
     toolCalls,
+    retrievalPlan,
     route,
-    trace: trace("route", `Selected ${route} route.`)
+    trace: [
+      ...trace("route", `Selected ${route} route.`),
+      ...(retrievalPlan
+        ? trace("plan", `Created ${retrievalPlan.strategy} retrieval plan with ${retrievalPlan.queries.length} query step(s).`)
+        : [])
+    ]
   };
 };
 
 const retrieveNode = async (state: typeof AgentStateAnnotation.State) => {
-  const sources = state.latestUserMessage
-    ? await ragService.retrieveSources({
-        query: state.latestUserMessage.content,
+  const sources = state.retrievalPlan
+    ? await ragService.retrieveSourcesForQueries({
+        plan: state.retrievalPlan,
         documentIds: state.documentIds
       })
     : [];
@@ -96,7 +160,7 @@ const toolsNode = async (state: typeof AgentStateAnnotation.State) => {
 };
 
 const promptNode = async (state: typeof AgentStateAnnotation.State) => {
-  const systemPrompt = await ragService.buildSystemPrompt(state.sources, state.tools);
+  const systemPrompt = await ragService.buildSystemPrompt(state.sources, state.tools, state.retrievalPlan);
 
   return {
     systemPrompt,

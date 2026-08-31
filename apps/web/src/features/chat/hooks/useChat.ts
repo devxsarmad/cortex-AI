@@ -25,6 +25,8 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
   const [provider, setProvider] = useState("not connected");
   const [agentRoute, setAgentRoute] = useState("idle");
   const [agentTraceCount, setAgentTraceCount] = useState(0);
+  const [retrievalStrategy, setRetrievalStrategy] = useState("none");
+  const [retrievalQueryCount, setRetrievalQueryCount] = useState(0);
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();
@@ -53,6 +55,8 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
           setProvider(meta.provider);
           setAgentRoute(meta.agent.route);
           setAgentTraceCount(meta.agent.trace.length);
+          setRetrievalStrategy(meta.retrieval.strategy);
+          setRetrievalQueryCount(meta.retrieval.queryCount);
         },
         onSources: (sources) => {
           setMessages((current) =>
@@ -94,6 +98,8 @@ export const useChat = ({ documentIds }: UseChatOptions) => {
     provider,
     agentRoute,
     agentTraceCount,
+    retrievalStrategy,
+    retrievalQueryCount,
     sendMessage
   };
 };

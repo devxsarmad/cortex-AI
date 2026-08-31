@@ -1,5 +1,15 @@
 # RAG Module
 
+Retrieval-augmented generation utilities for Cortex chat and agent workflows.
+
+Current behavior:
+
+- Retrieves document chunks from the active vector store.
+- Filters low-confidence matches before prompt injection.
+- Limits per-document source dominance.
+- Supports agentic multi-query retrieval plans.
+- Merges duplicate chunks across planned queries while preserving matched query labels.
+
 Module for retrieval and grounded answer generation.
 
 Current chunk:

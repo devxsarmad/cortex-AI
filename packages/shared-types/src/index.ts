@@ -31,7 +31,7 @@ export type ChatToolResultDto = {
 export type ChatAgentRouteDto = "respond" | "retrieve" | "tools" | "retrieve_and_tools";
 
 export type ChatAgentTraceStepDto = {
-  node: "route" | "retrieve" | "tools" | "prompt";
+  node: "route" | "plan" | "retrieve" | "tools" | "prompt";
   message: string;
   createdAt: string;
 };

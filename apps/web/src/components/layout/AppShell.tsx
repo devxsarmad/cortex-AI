@@ -5,10 +5,19 @@ type AppShellProps = {
   provider: string;
   agentRoute: string;
   agentTraceCount: number;
+  retrievalStrategy: string;
+  retrievalQueryCount: number;
   children: ReactNode;
 };
 
-export function AppShell({ provider, agentRoute, agentTraceCount, children }: AppShellProps) {
+export function AppShell({
+  provider,
+  agentRoute,
+  agentTraceCount,
+  retrievalStrategy,
+  retrievalQueryCount,
+  children
+}: AppShellProps) {
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-ink">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
@@ -26,6 +35,9 @@ export function AppShell({ provider, agentRoute, agentTraceCount, children }: Ap
             </div>
             <span className="text-xs capitalize text-slate-500">
               Route {agentRoute.replaceAll("_", " ")} | {agentTraceCount} steps
+            </span>
+            <span className="text-xs capitalize text-slate-500">
+              Retrieval {retrievalStrategy.replaceAll("_", " ")} | {retrievalQueryCount} queries
             </span>
           </div>
         </header>

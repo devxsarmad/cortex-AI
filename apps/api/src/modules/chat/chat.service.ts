@@ -26,7 +26,9 @@ export class ChatService {
             retrieval: {
               sourceCount: agentResult.sources.length,
               scopedDocumentCount: input.documentIds?.length ?? 0,
-              vectorStoreProvider: ragService.vectorStoreProvider
+              vectorStoreProvider: ragService.vectorStoreProvider,
+              strategy: agentResult.retrievalPlan?.strategy ?? "none",
+              queryCount: agentResult.retrievalPlan?.queries.length ?? 0
             },
             tools: {
               executedCount: agentResult.tools.length

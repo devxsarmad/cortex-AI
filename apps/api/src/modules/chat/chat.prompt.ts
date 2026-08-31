@@ -1,5 +1,5 @@
 import { PromptTemplate } from "@langchain/core/prompts";
-import type { RagSource } from "../rag/rag.types.js";
+import type { RagSource, RetrievalPlan } from "../rag/rag.types.js";
 import type { ToolExecution } from "../tools/tool.types.js";
 
 export const cortexSystemPrompt = `
@@ -9,6 +9,7 @@ Rules:
 - Be clear, careful, and evidence-oriented.
 - Use retrieved document context when it is provided.
 - If the retrieved context does not contain the answer, say that the uploaded documents do not contain enough information.
+- When a retrieval plan requires synthesis, compare and combine the retrieved sources instead of summarizing only the first source.
 - Use backend tool results when they are provided.
 - Do not invent tool outputs or claim a tool was used when no tool result is present.
 - Do not invent facts, IDs, names, values, dates, or citations.
@@ -22,6 +23,9 @@ const ragPromptTemplate = PromptTemplate.fromTemplate(`
 Retrieved document context:
 {context}
 
+Retrieval plan:
+{retrievalPlan}
+
 Backend tool results:
 {toolResults}
 `.trim());
@@ -34,9 +38,24 @@ const formatSources = (sources: RagSource[]) => {
   return sources
     .map((source, index) => {
       const label = `S${index + 1}`;
-      return `[${label}] ${source.filename} chunk ${source.chunkIndex} score ${source.score.toFixed(3)}\n${source.content}`;
+      const matchedQueries = source.matchedQueries?.length
+        ? ` matched queries: ${source.matchedQueries.join(", ")}`
+        : "";
+      return `[${label}] ${source.filename} chunk ${source.chunkIndex} score ${source.score.toFixed(3)}${matchedQueries}\n${source.content}`;
     })
     .join("\n\n");
+};
+
+const formatRetrievalPlan = (retrievalPlan?: RetrievalPlan) => {
+  if (!retrievalPlan) {
+    return "No retrieval plan was created.";
+  }
+
+  const queries = retrievalPlan.queries
+    .map((query) => `${query.label}: ${query.query}`)
+    .join("\n");
+
+  return `Strategy: ${retrievalPlan.strategy}\nRequires synthesis: ${retrievalPlan.requiresSynthesis}\nNote: ${retrievalPlan.note}\nQueries:\n${queries}`;
 };
 
 const formatToolResults = (toolResults: ToolExecution[]) => {
@@ -52,10 +71,15 @@ const formatToolResults = (toolResults: ToolExecution[]) => {
     .join("\n\n");
 };
 
-export const buildRagSystemPrompt = async (sources: RagSource[], toolResults: ToolExecution[] = []) => {
+export const buildRagSystemPrompt = async (
+  sources: RagSource[],
+  toolResults: ToolExecution[] = [],
+  retrievalPlan?: RetrievalPlan
+) => {
   return ragPromptTemplate.format({
     systemPrompt: cortexSystemPrompt,
     context: formatSources(sources),
+    retrievalPlan: formatRetrievalPlan(retrievalPlan),
     toolResults: formatToolResults(toolResults)
   });
 };

@@ -10,12 +10,27 @@ import { useChat } from "../hooks/useChat";
 
 export function ChatView() {
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-  const { messages, isStreaming, provider, agentRoute, agentTraceCount, sendMessage } = useChat({
+  const {
+    messages,
+    isStreaming,
+    provider,
+    agentRoute,
+    agentTraceCount,
+    retrievalStrategy,
+    retrievalQueryCount,
+    sendMessage
+  } = useChat({
     documentIds: selectedDocumentIds
   });
 
   return (
-    <AppShell provider={provider} agentRoute={agentRoute} agentTraceCount={agentTraceCount}>
+    <AppShell
+      provider={provider}
+      agentRoute={agentRoute}
+      agentTraceCount={agentTraceCount}
+      retrievalStrategy={retrievalStrategy}
+      retrievalQueryCount={retrievalQueryCount}
+    >
       <div className="flex min-h-[70vh] flex-col">
         <DocumentPanel
           selectedDocumentIds={selectedDocumentIds}
