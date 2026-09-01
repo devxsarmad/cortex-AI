@@ -6,9 +6,14 @@ import { ragService } from "../rag/rag.service.js";
 import type { ChatStreamMeta, StreamChatRequest } from "./chat.types.js";
 
 const encoder = new TextEncoder();
+const MAX_CONTEXT_MESSAGES = 20;
 
 const formatSse = (event: string, data: unknown) => {
   return encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+};
+
+const trimContextMessages = (input: StreamChatRequest) => {
+  return input.messages.slice(-MAX_CONTEXT_MESSAGES);
 };
 
 export class ChatService {
@@ -20,9 +25,17 @@ export class ChatService {
     return new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          const agentResult = await agentService.run(input);
+          const contextMessages = trimContextMessages(input);
+          const agentResult = await agentService.run({
+            ...input,
+            messages: contextMessages
+          });
           const meta: ChatStreamMeta = {
             provider: llmClient.provider,
+            memory: {
+              totalMessages: input.messages.length,
+              contextMessages: contextMessages.length
+            },
             retrieval: {
               sourceCount: agentResult.sources.length,
               scopedDocumentCount: input.documentIds?.length ?? 0,
@@ -44,7 +57,7 @@ export class ChatService {
 
           const completion = llmClient.streamCompletion({
             systemPrompt: agentResult.systemPrompt,
-            messages: input.messages,
+            messages: contextMessages,
             temperature: env.aiTemperature
           });
 

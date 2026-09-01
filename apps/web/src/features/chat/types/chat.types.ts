@@ -19,6 +19,10 @@ export type ChatSource = {
 
 export type ChatProviderMeta = {
   provider: string;
+  memory: {
+    totalMessages: number;
+    contextMessages: number;
+  };
   retrieval: {
     sourceCount: number;
     scopedDocumentCount: number;

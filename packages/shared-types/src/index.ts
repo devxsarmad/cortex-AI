@@ -11,6 +11,44 @@ export type ChatMessageDto = {
   content: string;
 };
 
+export type ConversationDto = {
+  id: string;
+  title: string;
+  documentIds: string[];
+  messageCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ConversationDetailDto = ConversationDto & {
+  messages: ChatMessageDto[];
+};
+
+export type CreateConversationDto = {
+  title?: string;
+};
+
+export type UpdateConversationMessagesDto = {
+  messages: ChatMessageDto[];
+  documentIds?: string[];
+};
+
+export type CreateConversationResponseDto = {
+  conversation: ConversationDetailDto;
+};
+
+export type ListConversationsResponseDto = {
+  conversations: ConversationDto[];
+};
+
+export type GetConversationResponseDto = {
+  conversation: ConversationDetailDto;
+};
+
+export type DeleteConversationResponseDto = {
+  conversationId: string;
+};
+
 export type StreamChatDto = {
   messages: ChatMessageDto[];
   documentIds?: string[];

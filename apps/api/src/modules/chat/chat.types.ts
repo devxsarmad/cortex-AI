@@ -19,6 +19,10 @@ export type ChatToolResult = ToolExecution;
 
 export type ChatStreamMeta = {
   provider: string;
+  memory: {
+    totalMessages: number;
+    contextMessages: number;
+  };
   retrieval: {
     sourceCount: number;
     scopedDocumentCount: number;

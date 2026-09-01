@@ -13,4 +13,5 @@ Current chunk:
 - Executes deterministic backend tools for calculator, current time, and document stats requests.
 - Injects structured tool results into the system prompt before calling the LLM.
 - Sends tool metadata through a `tools` SSE event.
+- Uses a short context window from restored sessions before calling the LLM.
 - Falls back to a no-context prompt when no relevant chunks are available.

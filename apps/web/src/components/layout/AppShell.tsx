@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import type { ConversationSummary } from "@/features/chat/types/conversation.types";
 
 type AppShellProps = {
   provider: string;
@@ -7,6 +8,12 @@ type AppShellProps = {
   agentTraceCount: number;
   retrievalStrategy: string;
   retrievalQueryCount: number;
+  conversations: ConversationSummary[];
+  activeConversationId?: string;
+  isLoadingConversations: boolean;
+  onNewChat: () => void;
+  onSelectConversation: (conversationId: string) => void;
+  onDeleteConversation: (conversationId: string) => void;
   children: ReactNode;
 };
 
@@ -16,6 +23,12 @@ export function AppShell({
   agentTraceCount,
   retrievalStrategy,
   retrievalQueryCount,
+  conversations,
+  activeConversationId,
+  isLoadingConversations,
+  onNewChat,
+  onSelectConversation,
+  onDeleteConversation,
   children
 }: AppShellProps) {
   return (
@@ -47,22 +60,56 @@ export function AppShell({
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">Workspace</h2>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                <Button className="w-full justify-start text-left">New chat</Button>
-                <Button variant="secondary" className="w-full text-left">
-                  Knowledge base
+                <Button className="w-full justify-start text-left" onClick={onNewChat}>
+                  New chat
                 </Button>
-                <Button variant="secondary" className="w-full text-left">
-                  Retrieval test
-                </Button>
-                <Button variant="secondary" className="w-full text-left">
-                  Agent trace
-                </Button>
+                <div>
+                  <h3 className="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">
+                    Chat sessions
+                  </h3>
+                  <div className="space-y-2">
+                    {isLoadingConversations && (
+                      <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                        Loading sessions...
+                      </p>
+                    )}
+                    {!isLoadingConversations && conversations.length === 0 && (
+                      <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                        No saved chats yet.
+                      </p>
+                    )}
+                    {!isLoadingConversations &&
+                      conversations.map((conversation) => (
+                        <div
+                          key={conversation.id}
+                          className="flex items-center gap-2 rounded-md border border-slate-200 bg-white p-2"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onSelectConversation(conversation.id)}
+                            className={`min-w-0 flex-1 text-left text-xs leading-5 ${
+                              activeConversationId === conversation.id ? "text-clinical" : "text-slate-700"
+                            }`}
+                          >
+                            <span className="block truncate font-medium">{conversation.title}</span>
+                            <span className="text-slate-500">{conversation.messageCount} messages</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteConversation(conversation.id)}
+                            className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-900">
-              Upload text sources first, then connect embeddings and vector search in the next
-              pipeline chunk.
+              Conversations are saved in API memory for this chunk. Restarting the API clears them.
             </div>
           </aside>
 
