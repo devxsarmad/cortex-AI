@@ -4,6 +4,7 @@ import type {
   ChatSource,
   ChatToolResult
 } from "@/features/chat/types/chat.types";
+import { API_URL, createApiHeaders } from "./api-client";
 
 type StreamChatOptions = {
   messages: ChatMessage[];
@@ -13,8 +14,6 @@ type StreamChatOptions = {
   onSources?: (sources: ChatSource[]) => void;
   onTools?: (tools: ChatToolResult[]) => void;
 };
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 const parseSseBlock = (block: string) => {
   const event = block.match(/^event: (.+)$/m)?.[1];
@@ -35,9 +34,9 @@ export const streamChat = async ({
 }: StreamChatOptions) => {
   const response = await fetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
-    headers: {
+    headers: createApiHeaders({
       "Content-Type": "application/json"
-    },
+    }),
     body: JSON.stringify({
       messages: messages.map(({ role, content }) => ({ role, content })),
       documentIds

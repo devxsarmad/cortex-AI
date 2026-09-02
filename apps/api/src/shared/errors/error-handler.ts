@@ -6,9 +6,11 @@ import { AppError } from "./app-error.js";
 
 export const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
   void next;
+  const requestId = response.locals.requestId;
 
   if (error instanceof ZodError) {
     response.status(HttpStatus.BAD_REQUEST).json({
+      requestId,
       error: "Validation failed",
       details: error.flatten()
     });
@@ -17,6 +19,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, nex
 
   if (error instanceof AppError) {
     response.status(error.statusCode).json({
+      requestId,
       error: error.message,
       details: error.details
     });
@@ -26,6 +29,7 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, nex
   console.error(error);
 
   response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+    requestId,
     error: "Internal server error",
     details: env.nodeEnv === "development" && error instanceof Error ? error.message : undefined
   });

@@ -3,8 +3,7 @@ import type {
   DocumentDetail,
   DocumentSummary
 } from "@/features/documents/types/document.types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { API_URL, createApiHeaders } from "./api-client";
 
 type UploadDocumentResponse = {
   document: DocumentDetail;
@@ -28,6 +27,7 @@ export const uploadDocument = async (file: File) => {
 
   const response = await fetch(`${API_URL}/api/documents`, {
     method: "POST",
+    headers: createApiHeaders(),
     body: formData
   });
 
@@ -41,7 +41,9 @@ export const uploadDocument = async (file: File) => {
 };
 
 export const listDocuments = async () => {
-  const response = await fetch(`${API_URL}/api/documents`);
+  const response = await fetch(`${API_URL}/api/documents`, {
+    headers: createApiHeaders()
+  });
 
   if (!response.ok) {
     throw new Error("Could not load documents.");
@@ -52,7 +54,9 @@ export const listDocuments = async () => {
 };
 
 export const listDocumentChunks = async (documentId: string) => {
-  const response = await fetch(`${API_URL}/api/documents/${documentId}/chunks`);
+  const response = await fetch(`${API_URL}/api/documents/${documentId}/chunks`, {
+    headers: createApiHeaders()
+  });
 
   if (!response.ok) {
     throw new Error("Could not load document chunks.");
@@ -64,7 +68,8 @@ export const listDocumentChunks = async (documentId: string) => {
 
 export const retryDocument = async (documentId: string) => {
   const response = await fetch(`${API_URL}/api/documents/${documentId}/retry`, {
-    method: "POST"
+    method: "POST",
+    headers: createApiHeaders()
   });
 
   if (!response.ok) {
@@ -78,7 +83,8 @@ export const retryDocument = async (documentId: string) => {
 
 export const deleteDocument = async (documentId: string) => {
   const response = await fetch(`${API_URL}/api/documents/${documentId}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: createApiHeaders()
   });
 
   if (!response.ok) {

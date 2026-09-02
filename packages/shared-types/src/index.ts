@@ -49,6 +49,18 @@ export type DeleteConversationResponseDto = {
   conversationId: string;
 };
 
+export type UsageSnapshotDto = {
+  chatRequests: number;
+  promptTokens: number;
+  completionTokens: number;
+  estimatedCostUsd: number;
+  updatedAt: string | null;
+};
+
+export type UsageResponseDto = {
+  usage: UsageSnapshotDto;
+};
+
 export type StreamChatDto = {
   messages: ChatMessageDto[];
   documentIds?: string[];

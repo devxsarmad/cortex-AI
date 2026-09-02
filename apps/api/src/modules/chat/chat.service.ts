@@ -2,6 +2,7 @@ import { env } from "../../config/env.js";
 import { createLlmClient } from "../../infrastructure/llm/llm.client.js";
 import type { LlmClient } from "../../infrastructure/llm/llm.types.js";
 import { agentService } from "../agents/agent.service.js";
+import { usageService } from "../ops/usage.service.js";
 import { ragService } from "../rag/rag.service.js";
 import type { ChatStreamMeta, StreamChatRequest } from "./chat.types.js";
 
@@ -15,6 +16,8 @@ const formatSse = (event: string, data: unknown) => {
 const trimContextMessages = (input: StreamChatRequest) => {
   return input.messages.slice(-MAX_CONTEXT_MESSAGES);
 };
+
+const estimateTokens = (text: string) => Math.ceil(text.length / 4);
 
 export class ChatService {
   constructor(private readonly llmClient: LlmClient = createLlmClient()) {}
@@ -60,10 +63,19 @@ export class ChatService {
             messages: contextMessages,
             temperature: env.aiTemperature
           });
+          let completionTokens = 0;
 
           for await (const token of completion) {
+            completionTokens += estimateTokens(token);
             controller.enqueue(formatSse("token", { token }));
           }
+
+          usageService.recordChatUsage({
+            promptTokens: estimateTokens(
+              [agentResult.systemPrompt, ...contextMessages.map((message) => message.content)].join("\n")
+            ),
+            completionTokens
+          });
 
           controller.enqueue(formatSse("done", {}));
           controller.close();

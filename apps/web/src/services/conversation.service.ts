@@ -1,7 +1,6 @@
 import type { ConversationDetail, ConversationSummary } from "@/features/chat/types/conversation.types";
 import type { ChatMessage } from "@/features/chat/types/chat.types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+import { API_URL, createApiHeaders } from "./api-client";
 
 type ConversationPayload = {
   conversation: ConversationDetail;
@@ -25,9 +24,9 @@ const toPersistedMessages = (messages: ChatMessage[]) => {
 export const createConversation = async () => {
   const response = await fetch(`${API_URL}/api/conversations`, {
     method: "POST",
-    headers: {
+    headers: createApiHeaders({
       "Content-Type": "application/json"
-    },
+    }),
     body: JSON.stringify({})
   });
 
@@ -40,7 +39,9 @@ export const createConversation = async () => {
 };
 
 export const listConversations = async () => {
-  const response = await fetch(`${API_URL}/api/conversations`);
+  const response = await fetch(`${API_URL}/api/conversations`, {
+    headers: createApiHeaders()
+  });
 
   if (!response.ok) {
     throw new Error("Could not load chat sessions.");
@@ -51,7 +52,9 @@ export const listConversations = async () => {
 };
 
 export const getConversation = async (conversationId: string) => {
-  const response = await fetch(`${API_URL}/api/conversations/${conversationId}`);
+  const response = await fetch(`${API_URL}/api/conversations/${conversationId}`, {
+    headers: createApiHeaders()
+  });
 
   if (!response.ok) {
     throw new Error("Could not restore chat session.");
@@ -68,9 +71,9 @@ export const saveConversationMessages = async (
 ) => {
   const response = await fetch(`${API_URL}/api/conversations/${conversationId}/messages`, {
     method: "PUT",
-    headers: {
+    headers: createApiHeaders({
       "Content-Type": "application/json"
-    },
+    }),
     body: JSON.stringify({
       messages: toPersistedMessages(messages),
       documentIds
@@ -87,7 +90,8 @@ export const saveConversationMessages = async (
 
 export const deleteConversation = async (conversationId: string) => {
   const response = await fetch(`${API_URL}/api/conversations/${conversationId}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: createApiHeaders()
   });
 
   if (!response.ok) {
