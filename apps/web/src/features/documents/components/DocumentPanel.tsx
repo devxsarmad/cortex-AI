@@ -27,7 +27,7 @@ const statusLabel: Record<DocumentSummary["status"], string> = {
 const pipelineLabel = (document: DocumentSummary) => {
   if (document.status === "uploaded") return "Queued for processing";
   if (document.status === "processing") return "Chunking and embedding";
-  if (document.status === "needs_parser") return "Waiting for PDF parser";
+  if (document.status === "needs_parser") return "Waiting for an unsupported parser such as OCR";
   if (document.status === "failed") return document.errorMessage ?? "Processing failed";
   if (document.chunkCount === 0) return "No chunks";
 

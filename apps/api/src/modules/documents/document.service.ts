@@ -6,6 +6,7 @@ import { vectorStore } from "../../infrastructure/vector-db/vector-store.js";
 import { embeddingService } from "../embeddings/embedding.service.js";
 import { documentRepository, type DocumentRepository } from "./document.repository.js";
 import type { DocumentDetail, DocumentRecord, DocumentSummary } from "./document.types.js";
+import { extractPdfText } from "./pdf-extractor.js";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 
@@ -81,18 +82,19 @@ export class DocumentService {
 
     this.repository.save(document);
 
-    if (isPdfDocument(file)) {
-      return this.markNeedsParser(document.id);
+    try {
+      const extractedText = await this.extractText(file);
+      return this.processDocument(document.id, extractedText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Document extraction failed.";
+      return this.markFailed(document.id, message);
     }
-
-    const extractedText = this.extractText(file);
-    return this.processDocument(document.id, extractedText);
   }
 
   async retryDocument(id: string): Promise<DocumentRecord> {
     const document = this.getDocument(id);
     if (document.status === "needs_parser") {
-      throw new AppError("PDF parsing is not implemented for this document yet.", HttpStatus.BAD_REQUEST);
+      throw new AppError("This document still needs a parser that Cortex does not support yet.", HttpStatus.BAD_REQUEST);
     }
 
     if (!document.extractedText) {
@@ -156,16 +158,19 @@ export class DocumentService {
     }
   }
 
-  private extractText(file: Express.Multer.File) {
+  private async extractText(file: Express.Multer.File) {
     if (isTextDocument(file)) {
       return file.buffer.toString("utf8").trim();
     }
 
     if (isPdfDocument(file)) {
-      return "";
+      return extractPdfText(file.buffer);
     }
 
-    return "";
+    throw new AppError(
+      "Unsupported document type. Upload a TXT, Markdown, JSON, CSV, or PDF file.",
+      HttpStatus.UNSUPPORTED_MEDIA_TYPE
+    );
   }
 
   private async processDocument(id: string, extractedText: string): Promise<DocumentRecord> {
@@ -188,7 +193,10 @@ export class DocumentService {
 
     try {
       if (!extractedText.trim()) {
-        throw new AppError("No readable text could be extracted from this document.", HttpStatus.BAD_REQUEST);
+        throw new AppError(
+          "No readable text could be extracted from this document. Scanned or image-only PDFs are not supported yet.",
+          HttpStatus.BAD_REQUEST
+        );
       }
 
       const embeddedChunks = await embeddingService.embedDocumentText(extractedText);
@@ -242,12 +250,13 @@ export class DocumentService {
     }
   }
 
-  private markNeedsParser(id: string) {
+  private markFailed(id: string, errorMessage: string) {
     const now = new Date().toISOString();
     return this.updateOrThrow(id, {
-      status: "needs_parser",
-      errorMessage: "PDF extraction is not implemented yet.",
-      updatedAt: now
+      status: "failed",
+      errorMessage,
+      updatedAt: now,
+      processedAt: now
     });
   }
 
