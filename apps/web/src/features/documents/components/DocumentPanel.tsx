@@ -48,6 +48,7 @@ type DocumentPanelProps = {
 export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange }: DocumentPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [documents, setDocuments] = useState<DocumentSummary[]>([]);
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [retryingDocumentId, setRetryingDocumentId] = useState<string | null>(null);
@@ -88,23 +89,34 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
     void refreshDocuments();
   }, [refreshDocuments]);
 
-  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    setStagedFile(file ?? null);
+  };
+
+  const handleClearStagedFile = () => {
+    setStagedFile(null);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!stagedFile) return;
 
     try {
       setIsUploading(true);
       setError(null);
-      const document = await uploadDocument(file);
+      const document = await uploadDocument(stagedFile);
       setDocuments((current) => [document, ...current.filter((item) => item.id !== document.id)]);
       if (document.status === "ready") {
         onSelectedDocumentIdsChange([...selectedDocumentIds, document.id]);
       }
+      handleClearStagedFile();
     } catch (uploadError) {
       setError(uploadError instanceof Error ? uploadError.message : "Document upload failed.");
     } finally {
       setIsUploading(false);
-      event.target.value = "";
     }
   };
 
@@ -154,13 +166,20 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
             type="file"
             accept=".txt,.md,.markdown,.json,.csv,.pdf,text/plain,text/markdown,application/json,text/csv,application/pdf"
             className="hidden"
-            onChange={(event) => void handleUpload(event)}
+            onChange={handleFileChange}
           />
           <Button
             type="button"
             variant="secondary"
             disabled={isUploading}
             onClick={() => inputRef.current?.click()}
+          >
+            Choose file
+          </Button>
+          <Button
+            type="button"
+            disabled={!stagedFile || isUploading}
+            onClick={() => void handleUpload()}
           >
             {isUploading ? "Uploading" : "Upload"}
           </Button>
@@ -169,6 +188,23 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
           </Button>
         </div>
       </div>
+
+      {stagedFile && (
+        <div className="mt-3 flex flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-slate-800">{stagedFile.name}</p>
+            <p className="mt-1 text-xs text-slate-500">{formatBytes(stagedFile.size)} selected, not uploaded yet</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={isUploading}
+            onClick={handleClearStagedFile}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
 
       {error && (
         <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
