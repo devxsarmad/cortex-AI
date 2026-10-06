@@ -97,9 +97,13 @@ export function ChatView() {
           selectedDocumentIds={selectedDocumentIds}
           onSelectedDocumentIdsChange={setSelectedDocumentIds}
         />
-        <MessageList messages={messages} />
+        <MessageList messages={messages} selectedDocumentCount={selectedDocumentIds.length} />
         <PromptSuggestions disabled={isStreaming} onSelect={(prompt) => void sendMessage(prompt)} />
-        <ChatComposer isStreaming={isStreaming} onSubmit={(content) => void sendMessage(content)} />
+        <ChatComposer
+          isStreaming={isStreaming}
+          selectedDocumentCount={selectedDocumentIds.length}
+          onSubmit={(content) => void sendMessage(content)}
+        />
       </div>
     </AppShell>
   );

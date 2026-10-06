@@ -3,9 +3,10 @@ import type { ChatMessage } from "../types/chat.types";
 
 type MessageListProps = {
   messages: ChatMessage[];
+  selectedDocumentCount: number;
 };
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, selectedDocumentCount }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
@@ -45,6 +46,16 @@ export function MessageList({ messages }: MessageListProps) {
                 </div>
               </div>
             )}
+            {message.role === "assistant" &&
+              message.id !== "welcome" &&
+              selectedDocumentCount > 0 &&
+              message.sources &&
+              message.sources.length === 0 && (
+                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
+                  No selected document chunks matched this question strongly enough. The answer may rely on
+                  general model knowledge.
+                </div>
+              )}
             {message.role === "assistant" && message.tools && message.tools.length > 0 && (
               <div className="mt-3 border-t border-slate-200 pt-3">
                 <p className="text-xs font-medium text-slate-600">Tools</p>

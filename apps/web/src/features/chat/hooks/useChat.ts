@@ -10,7 +10,7 @@ const starterMessages: ChatMessage[] = [
     id: "welcome",
     role: "assistant",
     content:
-      "Hi, I am Cortex. Ask a healthcare research question and I will help you work through it clearly."
+      "Hi, I am Cortex. Select one or more knowledge sources, then ask a question and I will answer with document-backed context when there is a relevant match."
   }
 ];
 
