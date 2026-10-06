@@ -42,7 +42,10 @@ export function AppShell({
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Cortex AI</h1>
+            <div className="flex items-center gap-3">
+              <img src="/icon.svg" alt="" className="h-10 w-10 rounded-xl" />
+              <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Cortex AI</h1>
+            </div>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
               Knowledge assistant for grounded answers, document retrieval, and agent workflows.
             </p>
