@@ -12,6 +12,7 @@ export type AgentTraceStep = {
 };
 
 export type AgentRunInput = {
+  ownerId: string;
   messages: ChatMessage[];
   documentIds?: string[];
 };
@@ -26,6 +27,7 @@ export type AgentRunResult = {
 };
 
 export type AgentState = {
+  ownerId: string;
   messages: ChatMessage[];
   documentIds?: string[];
   latestUserMessage?: ChatMessage;

@@ -59,7 +59,7 @@ export class DocumentService {
     void this.restorePersistedVectors();
   }
 
-  async uploadDocument(file?: Express.Multer.File): Promise<DocumentRecord> {
+  async uploadDocument(file: Express.Multer.File | undefined, ownerId: string): Promise<DocumentRecord> {
     if (!file) {
       throw new AppError("A document file is required.", HttpStatus.BAD_REQUEST);
     }
@@ -69,6 +69,7 @@ export class DocumentService {
     const now = new Date().toISOString();
     const document: DocumentRecord = {
       id: randomUUID(),
+      ownerId,
       filename: file.originalname,
       mimeType: file.mimetype || "application/octet-stream",
       sizeBytes: file.size,
@@ -97,8 +98,8 @@ export class DocumentService {
     }
   }
 
-  async retryDocument(id: string): Promise<DocumentRecord> {
-    const document = this.getDocument(id);
+  async retryDocument(id: string, ownerId: string): Promise<DocumentRecord> {
+    const document = this.getDocument(id, ownerId);
     if (document.status === "needs_parser") {
       throw new AppError("This document still needs a parser that Cortex does not support yet.", HttpStatus.BAD_REQUEST);
     }
@@ -110,43 +111,62 @@ export class DocumentService {
     return this.processDocument(document.id, document.extractedText);
   }
 
-  async deleteDocument(id: string) {
-    this.getDocument(id);
+  async deleteDocument(id: string, ownerId: string) {
+    this.getDocument(id, ownerId);
     await vectorStore.deleteByDocumentId(id);
     this.repository.delete(id);
   }
 
-  listDocuments(): DocumentSummary[] {
+  listDocuments(ownerId: string): DocumentSummary[] {
     return this.repository
       .list()
+      .filter((document) => document.ownerId === ownerId)
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .map(toSummary);
   }
 
-  getDocument(id: string): DocumentRecord {
+  getDocument(id: string, ownerId?: string): DocumentRecord {
     const document = this.repository.findById(id);
-    if (!document) {
+    if (!document || (ownerId && document.ownerId !== ownerId)) {
       throw new AppError("Document not found.", HttpStatus.NOT_FOUND);
     }
 
     return document;
   }
 
-  getDocumentDetail(id: string): DocumentDetail {
-    return toDetail(this.getDocument(id));
+  getDocumentDetail(id: string, ownerId: string): DocumentDetail {
+    return toDetail(this.getDocument(id, ownerId));
   }
 
-  listDocumentChunks(id: string) {
-    return this.getDocument(id).chunks;
+  listDocumentChunks(id: string, ownerId: string) {
+    return this.getDocument(id, ownerId).chunks;
   }
 
-  async searchDocuments(input: { query: string; limit: number; documentId?: string; documentIds?: string[] }) {
+  async searchDocuments(input: {
+    ownerId: string;
+    query: string;
+    limit: number;
+    documentId?: string;
+    documentIds?: string[];
+  }) {
+    const requestedIds = new Set(input.documentIds ?? (input.documentId ? [input.documentId] : []));
+    const ownedIds = this.repository
+      .list()
+      .filter((document) => document.ownerId === input.ownerId && document.status === "ready")
+      .map((document) => document.id);
+    const scopedDocumentIds = requestedIds.size > 0
+      ? ownedIds.filter((documentId) => requestedIds.has(documentId))
+      : ownedIds;
+
+    if (scopedDocumentIds.length === 0) {
+      return [];
+    }
+
     const embedding = await embeddingService.embedQuery(input.query);
     return vectorStore.search({
       embedding,
       limit: input.limit,
-      documentId: input.documentId,
-      documentIds: input.documentIds
+      documentIds: scopedDocumentIds
     });
   }
 

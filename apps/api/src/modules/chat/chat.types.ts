@@ -10,6 +10,7 @@ export type ChatMessage = {
 };
 
 export type StreamChatRequest = {
+  ownerId: string;
   messages: ChatMessage[];
   documentIds?: string[];
 };

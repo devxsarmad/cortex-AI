@@ -5,6 +5,10 @@ import { toolService } from "../tools/tool.service.js";
 import type { AgentRoute, AgentRunInput, AgentState, AgentTraceStep } from "./agent.types.js";
 
 const AgentStateAnnotation = Annotation.Root({
+  ownerId: Annotation<AgentState["ownerId"]>({
+    value: (_left, right) => right,
+    default: () => ""
+  }),
   messages: Annotation<AgentState["messages"]>({
     value: (_left, right) => right,
     default: () => []
@@ -138,6 +142,7 @@ const retrieveNode = async (state: typeof AgentStateAnnotation.State) => {
   const sources = state.retrievalPlan
     ? await ragService.retrieveSourcesForQueries({
         plan: state.retrievalPlan,
+        ownerId: state.ownerId,
         documentIds: state.documentIds
       })
     : [];
@@ -150,7 +155,7 @@ const retrieveNode = async (state: typeof AgentStateAnnotation.State) => {
 
 const toolsNode = async (state: typeof AgentStateAnnotation.State) => {
   const tools = state.latestUserMessage
-    ? await toolService.executePlannedTools(state.latestUserMessage.content)
+    ? await toolService.executePlannedTools(state.latestUserMessage.content, state.ownerId)
     : [];
 
   return {

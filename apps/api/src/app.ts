@@ -17,7 +17,7 @@ export const createApp = () => {
   app.use(
     cors({
       origin: env.clientOrigin,
-      allowedHeaders: ["Content-Type", "Authorization", "x-cortex-api-key"]
+      allowedHeaders: ["Content-Type", "Authorization", "x-cortex-api-key", "x-cortex-user-id"]
     })
   );
   app.use(securityHeaders);

@@ -1,4 +1,5 @@
 import { JsonFileStore } from "../../infrastructure/storage/json-file-store.js";
+import { normalizeOwnerId } from "../../shared/request/request-owner.js";
 import type { DocumentRecord } from "./document.types.js";
 
 export interface DocumentRepository {
@@ -15,7 +16,10 @@ export class InMemoryDocumentRepository implements DocumentRepository {
 
   constructor() {
     for (const document of this.store.readMany()) {
-      this.documents.set(document.id, document);
+      this.documents.set(document.id, {
+        ...document,
+        ownerId: normalizeOwnerId(document.ownerId)
+      });
     }
   }
 

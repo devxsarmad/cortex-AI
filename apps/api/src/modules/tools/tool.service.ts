@@ -75,18 +75,18 @@ export class ToolService {
     return calls;
   }
 
-  async executePlannedTools(message: string) {
+  async executePlannedTools(message: string, ownerId: string) {
     const calls = this.planToolCalls(message);
     const executions: ToolExecution[] = [];
 
     for (const call of calls) {
-      executions.push(await this.execute(call));
+      executions.push(await this.execute(call, ownerId));
     }
 
     return executions;
   }
 
-  private async execute(call: PlannedToolCall): Promise<ToolExecution> {
+  private async execute(call: PlannedToolCall, ownerId: string): Promise<ToolExecution> {
     const id = randomUUID();
 
     try {
@@ -120,7 +120,7 @@ export class ToolService {
         name: call.name,
         label: "Document stats",
         input: call.input,
-        output: getDocumentStats(),
+        output: getDocumentStats(ownerId),
         status: "success"
       };
     } catch (error) {

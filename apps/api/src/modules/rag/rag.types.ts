@@ -22,11 +22,13 @@ export type RetrievalPlan = {
 };
 
 export type RetrieveSourcesInput = {
+  ownerId: string;
   query: string;
   documentIds?: string[];
 };
 
 export type RetrieveSourcesForQueriesInput = {
+  ownerId: string;
   plan: RetrievalPlan;
   documentIds?: string[];
 };

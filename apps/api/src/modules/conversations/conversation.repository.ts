@@ -1,4 +1,5 @@
 import { JsonFileStore } from "../../infrastructure/storage/json-file-store.js";
+import { normalizeOwnerId } from "../../shared/request/request-owner.js";
 import type { ConversationRecord } from "./conversation.types.js";
 
 export interface ConversationRepository {
@@ -15,7 +16,10 @@ export class InMemoryConversationRepository implements ConversationRepository {
 
   constructor() {
     for (const conversation of this.store.readMany()) {
-      this.conversations.set(conversation.id, conversation);
+      this.conversations.set(conversation.id, {
+        ...conversation,
+        ownerId: normalizeOwnerId(conversation.ownerId)
+      });
     }
   }
 

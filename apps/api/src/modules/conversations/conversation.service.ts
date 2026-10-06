@@ -23,6 +23,16 @@ const toSummary = (conversation: ConversationRecord): ConversationSummary => ({
   updatedAt: conversation.updatedAt
 });
 
+const toDetail = (conversation: ConversationRecord): ConversationDetail => ({
+  id: conversation.id,
+  title: conversation.title,
+  messages: conversation.messages,
+  documentIds: conversation.documentIds,
+  messageCount: conversation.messageCount,
+  createdAt: conversation.createdAt,
+  updatedAt: conversation.updatedAt
+});
+
 const createTitleFromMessages = (messages: ChatMessage[]) => {
   const firstUserMessage = messages.find((message) => message.role === "user")?.content.trim();
   if (!firstUserMessage) return DEFAULT_TITLE;
@@ -35,10 +45,11 @@ const createTitleFromMessages = (messages: ChatMessage[]) => {
 export class ConversationService {
   constructor(private readonly repository: ConversationRepository = conversationRepository) {}
 
-  createConversation(input: CreateConversationInput = {}): ConversationDetail {
+  createConversation(input: CreateConversationInput = {}, ownerId: string): ConversationDetail {
     const now = new Date().toISOString();
     const conversation: ConversationRecord = {
       id: randomUUID(),
+      ownerId,
       title: input.title?.trim() || DEFAULT_TITLE,
       messages: [],
       documentIds: [],
@@ -47,48 +58,58 @@ export class ConversationService {
       updatedAt: now
     };
 
-    return this.repository.save(conversation);
+    return toDetail(this.repository.save(conversation));
   }
 
-  listConversations(): ConversationSummary[] {
+  listConversations(ownerId: string): ConversationSummary[] {
     return this.repository
       .list()
+      .filter((conversation) => conversation.ownerId === ownerId)
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .map(toSummary);
   }
 
-  getConversation(id: string): ConversationDetail {
+  getConversation(id: string, ownerId: string): ConversationDetail {
     const conversation = this.repository.findById(id);
-    if (!conversation) {
+    if (!conversation || conversation.ownerId !== ownerId) {
+      throw new AppError("Conversation not found.", HttpStatus.NOT_FOUND);
+    }
+
+    return toDetail(conversation);
+  }
+
+  updateMessages(id: string, input: UpdateConversationMessagesInput, ownerId: string): ConversationDetail {
+    const conversation = this.getConversationRecord(id, ownerId);
+    const now = new Date().toISOString();
+    const messages = input.messages;
+    const title = conversation.title === DEFAULT_TITLE ? createTitleFromMessages(messages) : conversation.title;
+
+    return toDetail(this.updateOrThrow(id, ownerId, {
+      title,
+      messages,
+      documentIds: input.documentIds ?? conversation.documentIds,
+      messageCount: messages.length,
+      updatedAt: now
+    }));
+  }
+
+  deleteConversation(id: string, ownerId: string) {
+    this.getConversationRecord(id, ownerId);
+    this.repository.delete(id);
+  }
+
+  private getConversationRecord(id: string, ownerId: string) {
+    const conversation = this.repository.findById(id);
+    if (!conversation || conversation.ownerId !== ownerId) {
       throw new AppError("Conversation not found.", HttpStatus.NOT_FOUND);
     }
 
     return conversation;
   }
 
-  updateMessages(id: string, input: UpdateConversationMessagesInput): ConversationDetail {
-    const conversation = this.getConversation(id);
-    const now = new Date().toISOString();
-    const messages = input.messages;
-    const title = conversation.title === DEFAULT_TITLE ? createTitleFromMessages(messages) : conversation.title;
-
-    return this.updateOrThrow(id, {
-      title,
-      messages,
-      documentIds: input.documentIds ?? conversation.documentIds,
-      messageCount: messages.length,
-      updatedAt: now
-    });
-  }
-
-  deleteConversation(id: string) {
-    this.getConversation(id);
-    this.repository.delete(id);
-  }
-
-  private updateOrThrow(id: string, patch: Partial<ConversationRecord>) {
+  private updateOrThrow(id: string, ownerId: string, patch: Partial<ConversationRecord>) {
     const conversation = this.repository.update(id, patch);
-    if (!conversation) {
+    if (!conversation || conversation.ownerId !== ownerId) {
       throw new AppError("Conversation not found.", HttpStatus.NOT_FOUND);
     }
 

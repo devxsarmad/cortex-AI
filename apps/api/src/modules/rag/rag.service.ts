@@ -42,6 +42,7 @@ export class RagService {
 
   async retrieveSources(input: RetrieveSourcesInput) {
     const results = await documentService.searchDocuments({
+      ownerId: input.ownerId,
       query: input.query,
       limit: RAG_CANDIDATE_LIMIT,
       documentIds: input.documentIds
@@ -54,6 +55,7 @@ export class RagService {
     const resultsByQuery = await Promise.all(
       input.plan.queries.map(async (query) => {
         const results = await documentService.searchDocuments({
+          ownerId: input.ownerId,
           query: query.query,
           limit: RAG_CANDIDATE_LIMIT,
           documentIds: input.documentIds
