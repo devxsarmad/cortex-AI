@@ -1,3 +1,4 @@
+import { JsonFileStore } from "../../infrastructure/storage/json-file-store.js";
 import type { ConversationRecord } from "./conversation.types.js";
 
 export interface ConversationRepository {
@@ -10,9 +11,17 @@ export interface ConversationRepository {
 
 export class InMemoryConversationRepository implements ConversationRepository {
   private readonly conversations = new Map<string, ConversationRecord>();
+  private readonly store = new JsonFileStore<ConversationRecord>("conversations.json");
+
+  constructor() {
+    for (const conversation of this.store.readMany()) {
+      this.conversations.set(conversation.id, conversation);
+    }
+  }
 
   save(conversation: ConversationRecord) {
     this.conversations.set(conversation.id, conversation);
+    this.persist();
     return conversation;
   }
 
@@ -34,11 +43,21 @@ export class InMemoryConversationRepository implements ConversationRepository {
     };
 
     this.conversations.set(id, nextConversation);
+    this.persist();
     return nextConversation;
   }
 
   delete(id: string) {
-    return this.conversations.delete(id);
+    const didDelete = this.conversations.delete(id);
+    if (didDelete) {
+      this.persist();
+    }
+
+    return didDelete;
+  }
+
+  private persist() {
+    this.store.writeMany(this.list());
   }
 }
 

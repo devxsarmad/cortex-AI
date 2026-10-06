@@ -1,3 +1,4 @@
+import { JsonFileStore } from "../../infrastructure/storage/json-file-store.js";
 import type { DocumentRecord } from "./document.types.js";
 
 export interface DocumentRepository {
@@ -10,9 +11,17 @@ export interface DocumentRepository {
 
 export class InMemoryDocumentRepository implements DocumentRepository {
   private readonly documents = new Map<string, DocumentRecord>();
+  private readonly store = new JsonFileStore<DocumentRecord>("documents.json");
+
+  constructor() {
+    for (const document of this.store.readMany()) {
+      this.documents.set(document.id, document);
+    }
+  }
 
   save(document: DocumentRecord) {
     this.documents.set(document.id, document);
+    this.persist();
     return document;
   }
 
@@ -34,11 +43,21 @@ export class InMemoryDocumentRepository implements DocumentRepository {
     };
 
     this.documents.set(id, nextDocument);
+    this.persist();
     return nextDocument;
   }
 
   delete(id: string) {
-    return this.documents.delete(id);
+    const didDelete = this.documents.delete(id);
+    if (didDelete) {
+      this.persist();
+    }
+
+    return didDelete;
+  }
+
+  private persist() {
+    this.store.writeMany(this.list());
   }
 }
 

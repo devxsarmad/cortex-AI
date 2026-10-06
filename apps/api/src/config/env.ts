@@ -20,6 +20,7 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().optional(),
   AI_INPUT_COST_PER_1K_TOKENS: z.string().optional(),
   AI_OUTPUT_COST_PER_1K_TOKENS: z.string().optional(),
+  CORTEX_DATA_DIR: z.string().default(".cortex-data"),
   VECTOR_STORE_PROVIDER: z.enum(["memory", "qdrant"]).default("memory"),
   QDRANT_URL: z.string().url().default("http://localhost:6333"),
   QDRANT_COLLECTION: z.string().default("cortex_chunks")
@@ -40,6 +41,7 @@ export const env = {
   rateLimitMaxRequests: optionalNumber(parsedEnv.RATE_LIMIT_MAX_REQUESTS, 120),
   aiInputCostPer1kTokens: optionalNumber(parsedEnv.AI_INPUT_COST_PER_1K_TOKENS, 0),
   aiOutputCostPer1kTokens: optionalNumber(parsedEnv.AI_OUTPUT_COST_PER_1K_TOKENS, 0),
+  cortexDataDir: parsedEnv.CORTEX_DATA_DIR,
   vectorStoreProvider: parsedEnv.VECTOR_STORE_PROVIDER,
   qdrantUrl: parsedEnv.QDRANT_URL.replace(/\/$/, ""),
   qdrantCollection: parsedEnv.QDRANT_COLLECTION

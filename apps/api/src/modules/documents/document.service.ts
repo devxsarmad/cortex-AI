@@ -55,7 +55,9 @@ const toDetail = (document: DocumentRecord): DocumentDetail => ({
 });
 
 export class DocumentService {
-  constructor(private readonly repository: DocumentRepository = documentRepository) {}
+  constructor(private readonly repository: DocumentRepository = documentRepository) {
+    void this.restorePersistedVectors();
+  }
 
   async uploadDocument(file?: Express.Multer.File): Promise<DocumentRecord> {
     if (!file) {
@@ -273,6 +275,28 @@ export class DocumentService {
     }
 
     return document;
+  }
+
+  private async restorePersistedVectors() {
+    const documents = this.repository.list().filter((document) => document.status === "ready");
+    const points = documents.flatMap((document) =>
+      document.chunks.map((chunk) => ({
+        id: chunk.id,
+        documentId: chunk.documentId,
+        filename: document.filename,
+        chunkIndex: chunk.index,
+        content: chunk.content,
+        characterCount: chunk.characterCount,
+        tokenEstimate: chunk.tokenEstimate,
+        embedding: chunk.embedding,
+        embeddingProvider: chunk.embeddingProvider,
+        createdAt: chunk.createdAt
+      }))
+    );
+
+    if (points.length > 0 && vectorStore.provider === "memory") {
+      await vectorStore.upsert(points);
+    }
   }
 }
 
