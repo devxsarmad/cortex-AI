@@ -21,11 +21,17 @@ export function ChatView() {
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
   const [isLoadingConversations, setIsLoadingConversations] = useState(true);
+  const [loadingConversationId, setLoadingConversationId] = useState<string | undefined>();
+  const [deletingConversationId, setDeletingConversationId] = useState<string | undefined>();
+  const [conversationError, setConversationError] = useState<string | null>(null);
 
   const refreshConversations = useCallback(async () => {
     try {
       setIsLoadingConversations(true);
+      setConversationError(null);
       setConversations(await listConversations());
+    } catch (error) {
+      setConversationError(error instanceof Error ? error.message : "Could not load chat sessions.");
     } finally {
       setIsLoadingConversations(false);
     }
@@ -54,28 +60,45 @@ export function ChatView() {
   }, [refreshConversations]);
 
   const handleNewChat = () => {
+    setConversationError(null);
     setActiveConversationId(undefined);
     resetMessages();
   };
 
   const handleSelectConversation = async (conversationId: string) => {
-    const conversation = await getConversation(conversationId);
-    setActiveConversationId(conversation.id);
-    setSelectedDocumentIds(conversation.documentIds);
-    restoreMessages(
-      conversation.messages.map((message) => ({
-        ...message,
-        id: createId()
-      }))
-    );
+    try {
+      setConversationError(null);
+      setLoadingConversationId(conversationId);
+      const conversation = await getConversation(conversationId);
+      setActiveConversationId(conversation.id);
+      setSelectedDocumentIds(conversation.documentIds);
+      restoreMessages(
+        conversation.messages.map((message) => ({
+          ...message,
+          id: createId()
+        }))
+      );
+    } catch (error) {
+      setConversationError(error instanceof Error ? error.message : "Could not restore chat session.");
+    } finally {
+      setLoadingConversationId(undefined);
+    }
   };
 
   const handleDeleteConversation = async (conversationId: string) => {
-    await deleteConversation(conversationId);
-    if (activeConversationId === conversationId) {
-      handleNewChat();
+    try {
+      setConversationError(null);
+      setDeletingConversationId(conversationId);
+      await deleteConversation(conversationId);
+      if (activeConversationId === conversationId) {
+        handleNewChat();
+      }
+      await refreshConversations();
+    } catch (error) {
+      setConversationError(error instanceof Error ? error.message : "Could not delete chat session.");
+    } finally {
+      setDeletingConversationId(undefined);
     }
-    await refreshConversations();
   };
 
   return (
@@ -87,7 +110,10 @@ export function ChatView() {
       retrievalQueryCount={retrievalQueryCount}
       conversations={conversations}
       activeConversationId={activeConversationId}
+      loadingConversationId={loadingConversationId}
+      deletingConversationId={deletingConversationId}
       isLoadingConversations={isLoadingConversations}
+      conversationError={conversationError}
       onNewChat={handleNewChat}
       onSelectConversation={(conversationId) => void handleSelectConversation(conversationId)}
       onDeleteConversation={(conversationId) => void handleDeleteConversation(conversationId)}

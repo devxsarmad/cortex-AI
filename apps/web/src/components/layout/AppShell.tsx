@@ -10,7 +10,10 @@ type AppShellProps = {
   retrievalQueryCount: number;
   conversations: ConversationSummary[];
   activeConversationId?: string;
+  loadingConversationId?: string;
+  deletingConversationId?: string;
   isLoadingConversations: boolean;
+  conversationError?: string | null;
   onNewChat: () => void;
   onSelectConversation: (conversationId: string) => void;
   onDeleteConversation: (conversationId: string) => void;
@@ -25,7 +28,10 @@ export function AppShell({
   retrievalQueryCount,
   conversations,
   activeConversationId,
+  loadingConversationId,
+  deletingConversationId,
   isLoadingConversations,
+  conversationError,
   onNewChat,
   onSelectConversation,
   onDeleteConversation,
@@ -68,6 +74,11 @@ export function AppShell({
                     Chat sessions
                   </h3>
                   <div className="space-y-2">
+                    {conversationError && (
+                      <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                        {conversationError}
+                      </p>
+                    )}
                     {isLoadingConversations && (
                       <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
                         Loading sessions...
@@ -86,20 +97,26 @@ export function AppShell({
                         >
                           <button
                             type="button"
+                            disabled={loadingConversationId === conversation.id}
                             onClick={() => onSelectConversation(conversation.id)}
                             className={`min-w-0 flex-1 text-left text-xs leading-5 ${
                               activeConversationId === conversation.id ? "text-clinical" : "text-slate-700"
                             }`}
                           >
                             <span className="block truncate font-medium">{conversation.title}</span>
-                            <span className="text-slate-500">{conversation.messageCount} messages</span>
+                            <span className="text-slate-500">
+                              {loadingConversationId === conversation.id
+                                ? "Restoring..."
+                                : `${conversation.messageCount} messages | ${conversation.documentIds.length} sources`}
+                            </span>
                           </button>
                           <button
                             type="button"
+                            disabled={deletingConversationId === conversation.id}
                             onClick={() => onDeleteConversation(conversation.id)}
-                            className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-red-600"
+                            className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            Delete
+                            {deletingConversationId === conversation.id ? "Deleting" : "Delete"}
                           </button>
                         </div>
                       ))}
