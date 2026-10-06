@@ -19,8 +19,11 @@ export class EmbeddingService {
     return this.embeddingClient.provider;
   }
 
-  async embedDocumentText(text: string): Promise<EmbeddedChunk[]> {
-    const chunks = await chunkText(text);
+  async embedDocumentText(
+    text: string,
+    options: { documentFormat?: "text" | "csv" } = {}
+  ): Promise<EmbeddedChunk[]> {
+    const chunks = await chunkText(text, options);
     const vectors = await this.embeddingClient.embedTexts(chunks.map((chunk) => chunk.content));
 
     return chunks.map((chunk, index) => ({

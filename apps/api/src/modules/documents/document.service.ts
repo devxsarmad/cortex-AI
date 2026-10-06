@@ -28,6 +28,10 @@ const isPdfDocument = (file: Express.Multer.File) => {
   return file.mimetype === "application/pdf" || extname(file.originalname).toLowerCase() === ".pdf";
 };
 
+const isCsvDocument = (document: Pick<DocumentRecord, "filename" | "mimeType">) => {
+  return document.mimeType === "text/csv" || extname(document.filename).toLowerCase() === ".csv";
+};
+
 const toSummary = (document: DocumentRecord): DocumentSummary => ({
   id: document.id,
   filename: document.filename,
@@ -199,7 +203,9 @@ export class DocumentService {
         );
       }
 
-      const embeddedChunks = await embeddingService.embedDocumentText(extractedText);
+      const embeddedChunks = await embeddingService.embedDocumentText(extractedText, {
+        documentFormat: isCsvDocument(document) ? "csv" : "text"
+      });
       const completedAt = new Date().toISOString();
       const chunks = embeddedChunks.map((chunk) => ({
         id: randomUUID(),
