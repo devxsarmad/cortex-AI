@@ -30,6 +30,11 @@ export const resetCortexUserId = () => {
   window.localStorage.removeItem(USER_ID_STORAGE_KEY);
 };
 
+export const getCortexWorkspaceLabel = () => {
+  const userId = getCortexUserId();
+  return userId.startsWith("local-") ? userId.slice(0, 14) : userId.slice(0, 8);
+};
+
 export const createApiHeaders = (headers: HeadersInit = {}) => {
   const apiKey = process.env.NEXT_PUBLIC_CORTEX_API_KEY;
   const nextHeaders = new Headers(headers);
