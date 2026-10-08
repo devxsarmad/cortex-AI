@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { getCortexWorkspaceLabel } from "@/services/api-client";
+import { getCortexWorkspaceLabel, resetCortexUserId } from "@/services/api-client";
 import type { ConversationSummary } from "@/features/chat/types/conversation.types";
 
 type AppShellProps = {
@@ -75,6 +75,17 @@ export function AppShell({
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
                 <Button className="w-full justify-start text-left" onClick={onNewChat}>
                   New chat
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full justify-start text-left"
+                  onClick={() => {
+                    resetCortexUserId();
+                    window.location.reload();
+                  }}
+                >
+                  Switch local workspace
                 </Button>
                 <div>
                   <h3 className="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">
