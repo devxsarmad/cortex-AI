@@ -144,7 +144,8 @@ export function AppShell({
             </div>
 
             <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-900">
-              Conversations are saved in API memory for this chunk. Restarting the API clears them.
+              Conversations and documents are stored locally per Cortex workspace. Switch workspaces to test
+              isolated data.
             </div>
           </aside>
 
