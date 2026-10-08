@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { getCortexWorkspaceLabel } from "@/services/api-client";
 import type { ConversationSummary } from "@/features/chat/types/conversation.types";
 
 type AppShellProps = {
@@ -37,6 +38,8 @@ export function AppShell({
   onDeleteConversation,
   children
 }: AppShellProps) {
+  const workspaceLabel = getCortexWorkspaceLabel();
+
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-ink">
       <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
@@ -68,6 +71,7 @@ export function AppShell({
           <aside className="hidden border-r border-slate-200 pr-5 lg:block">
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">Workspace</h2>
+              <p className="mt-1 text-xs text-slate-500">Local owner {workspaceLabel}</p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
                 <Button className="w-full justify-start text-left" onClick={onNewChat}>
                   New chat
