@@ -1,0 +1,3 @@
+import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
+export function EmptyState({ icon: Icon, title, description, action }: { icon: LucideIcon; title: string; description: string; action?: ReactNode }) { return <div className="flex min-h-48 flex-col items-center justify-center border border-dashed border-border-strong bg-surface p-card text-center"><div className="mb-3 flex h-10 w-10 items-center justify-center rounded-card bg-primary-soft text-primary"><Icon className="h-5 w-5" strokeWidth={1.75} aria-hidden="true" /></div><h3 className="text-body font-semibold text-text-primary">{title}</h3><p className="mt-1 max-w-sm text-small text-text-secondary">{description}</p>{action && <div className="mt-4">{action}</div>}</div>; }
