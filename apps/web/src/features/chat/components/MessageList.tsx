@@ -1,86 +1,13 @@
-import { cn } from "@/utils/cn";
+"use client";
+import Link from "next/link";
+import { Copy, FileText, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { ChatMessage } from "../types/chat.types";
 
-type MessageListProps = {
-  messages: ChatMessage[];
-  selectedDocumentCount: number;
-};
-
-export function MessageList({ messages, selectedDocumentCount }: MessageListProps) {
-  if (messages.length === 0) {
-    return (
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
-        Start a conversation to see responses here.
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex-1 space-y-4 overflow-y-auto rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      {messages.map((message) => (
-        <article key={message.id} className={cn("flex", message.role === "user" && "justify-end")}>
-          <div
-            className={cn(
-              "max-w-[82%] rounded-lg px-4 py-3 text-sm leading-6 shadow-sm",
-              message.role === "user"
-                ? "bg-clinical text-white"
-                : "border border-slate-200 bg-slate-50 text-ink"
-            )}
-          >
-            <p className="whitespace-pre-wrap">{message.content || "..."}</p>
-            {message.role === "assistant" && message.sources && message.sources.length > 0 && (
-              <div className="mt-3 border-t border-slate-200 pt-3">
-                <p className="text-xs font-medium text-slate-600">Sources</p>
-                <div className="mt-2 space-y-2">
-                  {message.sources.map((source, index) => (
-                    <div key={source.id} className="rounded-md border border-slate-200 bg-white px-3 py-2">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-xs font-medium text-slate-700">
-                          [S{index + 1}] {source.filename} chunk {source.chunkIndex}
-                        </span>
-                        <span className="text-xs text-slate-500">Score {source.score.toFixed(3)}</span>
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{source.content}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {message.role === "assistant" &&
-              message.id !== "welcome" &&
-              selectedDocumentCount > 0 &&
-              message.sources &&
-              message.sources.length === 0 && (
-                <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800">
-                  No selected document chunks matched this question strongly enough. The answer may rely on
-                  general model knowledge.
-                </div>
-              )}
-            {message.role === "assistant" && message.tools && message.tools.length > 0 && (
-              <div className="mt-3 border-t border-slate-200 pt-3">
-                <p className="text-xs font-medium text-slate-600">Tools</p>
-                <div className="mt-2 space-y-2">
-                  {message.tools.map((tool, index) => (
-                    <div key={tool.id} className="rounded-md border border-slate-200 bg-white px-3 py-2">
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-xs font-medium text-slate-700">
-                          [T{index + 1}] {tool.label}
-                        </span>
-                        <span className="text-xs text-slate-500">{tool.status}</span>
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">
-                        {tool.status === "success"
-                          ? JSON.stringify(tool.output)
-                          : tool.errorMessage ?? "Tool failed."}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </article>
-      ))}
-    </div>
-  );
+type Props = { messages: ChatMessage[]; selectedDocumentCount: number; documentCount: number; isStreaming: boolean; route: string; traceCount: number; retrieval: string; queryCount: number; onPrompt: (prompt: string) => void; onSourceSelect: (id: string) => void };
+const prompts = ["Summarize the selected sources", "Compare the uploaded documents", "List key facts with citations"];
+export function MessageList({ messages, selectedDocumentCount, documentCount, isStreaming, route, traceCount, retrieval, queryCount, onPrompt, onSourceSelect }: Props) {
+  const visible = messages.filter((message) => message.id !== "welcome");
+  if (visible.length === 0) return <div className="flex flex-1 items-center justify-center px-6 py-10"><div className="max-w-lg text-center"><div className="mx-auto flex h-10 w-10 items-center justify-center rounded-card bg-primary-soft text-primary"><FileText className="h-5 w-5"/></div>{documentCount === 0 ? <><h2 className="mt-4 text-section font-semibold">Add documents to get grounded answers</h2><p className="mt-2 text-body text-text-secondary">Upload a handbook, protocol, or policy before starting a source-cited conversation.</p><Link href="/documents" className="focus-ring mt-5 inline-flex h-control items-center rounded-control bg-primary px-3 font-medium text-text-on-brand hover:bg-primary-hover">Go to Documents</Link></> : <><h2 className="mt-4 text-section font-semibold">What can I help you find?</h2><p className="mt-2 text-body text-text-secondary">Ask Cortex to synthesize information across {selectedDocumentCount || "all"} available documents.</p><div className="mt-6 grid gap-2 text-left">{prompts.map((prompt) => <button key={prompt} onClick={() => onPrompt(prompt)} className="focus-ring rounded-card border border-border bg-surface px-4 py-3 text-small text-text-primary hover:border-primary-border hover:bg-primary-soft">{prompt}</button>)}</div></>}</div></div>;
+  return <div className="flex-1 overflow-y-auto"><div className="mx-auto max-w-[760px] space-y-7 px-4 py-8 sm:px-6">{visible.map((message, index) => <article key={message.id} className={message.role === "user" ? "flex justify-end" : "group"}>{message.role === "user" ? <div className="max-w-[82%] rounded-card bg-border/70 px-4 py-2.5 text-body leading-6"><p className="whitespace-pre-wrap">{message.content}</p></div> : <div><p className="mb-2 text-caption font-semibold uppercase tracking-wide text-primary">Cortex</p><div className="whitespace-pre-wrap text-body leading-6 text-text-primary">{message.content || <span className="text-text-muted">Thinking</span>}{isStreaming && index === visible.length - 1 && <span className="animate-stream-caret ml-0.5 inline-block h-4 w-0.5 bg-primary align-middle"/>}</div>{message.sources?.length ? <div className="mt-3 flex flex-wrap gap-1.5">{message.sources.map((source, sourceIndex) => <button key={source.id} onClick={() => onSourceSelect(source.id)} className="focus-ring rounded-control bg-primary-soft px-1.5 py-0.5 font-mono text-caption font-medium text-primary">[{sourceIndex + 1}]</button>)}</div> : null}{message.id !== "welcome" && selectedDocumentCount > 0 && message.sources?.length === 0 && <p className="mt-3 rounded-control bg-warning-soft px-3 py-2 text-small text-warning">No selected document chunks matched strongly enough. Verify this answer carefully.</p>}<div className="mt-3 flex items-center gap-1 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"><Button variant="ghost" size="sm" onClick={() => void navigator.clipboard.writeText(message.content)} aria-label="Copy answer"><Copy className="h-4 w-4"/>Copy</Button><Button variant="ghost" size="sm" onClick={() => { const previous = visible[index - 1]; if (previous?.role === "user") onPrompt(previous.content); }} aria-label="Regenerate answer"><RefreshCw className="h-4 w-4"/>Regenerate</Button></div><details className="mt-2 border-t border-border pt-2 text-caption text-text-muted"><summary className="cursor-pointer select-none font-medium">Details</summary><dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 rounded-control bg-canvas p-3"><dt>Route</dt><dd className="text-right capitalize">{route.replaceAll("_", " ")}</dd><dt>Steps</dt><dd className="text-right">{traceCount}</dd><dt>Retrieval</dt><dd className="text-right capitalize">{retrieval.replaceAll("_", " ")}</dd><dt>Queries</dt><dd className="text-right">{queryCount}</dd></dl></details></div>}</article>)}</div></div>;
 }

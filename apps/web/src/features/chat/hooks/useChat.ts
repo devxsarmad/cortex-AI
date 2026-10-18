@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { streamChat } from "@/services/chat.service";
 import { createConversation, saveConversationMessages } from "@/services/conversation.service";
@@ -46,6 +46,7 @@ export const useChat = ({
   const [agentTraceCount, setAgentTraceCount] = useState(0);
   const [retrievalStrategy, setRetrievalStrategy] = useState("none");
   const [retrievalQueryCount, setRetrievalQueryCount] = useState(0);
+  const streamController = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -82,6 +83,7 @@ export const useChat = ({
 
     setMessages(nextMessages);
     setIsStreaming(true);
+    streamController.current = new AbortController();
 
     try {
       if (!activeConversationId) {
@@ -91,6 +93,7 @@ export const useChat = ({
       }
 
       await streamChat({
+        signal: streamController.current.signal,
         messages: nextMessages.filter((message) => message.id !== assistantMessage.id),
         documentIds,
         onMeta: (meta) => {
@@ -140,6 +143,7 @@ export const useChat = ({
         onConversationSaved?.();
       }
     } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
       const message = error instanceof Error ? error.message : "Something went wrong.";
       setMessages((current) =>
         current.map((item) =>
@@ -149,9 +153,11 @@ export const useChat = ({
         )
       );
     } finally {
+      streamController.current = null;
       setIsStreaming(false);
     }
   };
+  const stopStreaming = () => streamController.current?.abort();
 
   const restoreMessages = (nextMessages: ChatMessage[]) => {
     setMessages(nextMessages.length > 0 ? nextMessages : starterMessages);
@@ -175,6 +181,7 @@ export const useChat = ({
     retrievalQueryCount,
     restoreMessages,
     resetMessages,
+    stopStreaming,
     sendMessage
   };
 };

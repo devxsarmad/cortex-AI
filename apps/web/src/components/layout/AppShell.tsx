@@ -1,170 +1,30 @@
-import type { ReactNode } from "react";
+"use client";
 import Image from "next/image";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { ChevronDown, CircleHelp, FileText, History, LogOut, Menu, MessageSquareText, PanelLeftClose, Settings, UserRound } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Avatar } from "@/components/ui/avatar";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownItem, DropdownMenu, DropdownSeparator } from "@/components/ui/dropdown-menu";
+import { Tooltip } from "@/components/ui/tooltip";
 import { useAuth } from "@/features/auth/AuthProvider";
-import type { ConversationSummary } from "@/features/chat/types/conversation.types";
+import { getApiHealth } from "@/services/health.service";
+import { cn } from "@/utils/cn";
 
-type AppShellProps = {
-  provider: string;
-  agentRoute: string;
-  agentTraceCount: number;
-  retrievalStrategy: string;
-  retrievalQueryCount: number;
-  conversations: ConversationSummary[];
-  activeConversationId?: string;
-  loadingConversationId?: string;
-  deletingConversationId?: string;
-  isLoadingConversations: boolean;
-  conversationError?: string | null;
-  onNewChat: () => void;
-  onSelectConversation: (conversationId: string) => void;
-  onDeleteConversation: (conversationId: string) => void;
-  children: ReactNode;
-};
+const navItems = [{ href: "/", label: "Chat", icon: MessageSquareText }, { href: "/documents", label: "Documents", icon: FileText }, { href: "/history", label: "History", icon: History }, { href: "/settings", label: "Settings", icon: Settings }];
+const titleFor = (path: string) => path === "/" ? "Chat" : path.startsWith("/documents") ? "Documents" : path.startsWith("/history") ? "History" : path.startsWith("/profile") ? "Profile" : "Settings";
 
-const formatProvider = (provider: string) => {
-  if (provider === "openai") return "OpenAI";
-  if (provider === "checking") return "Checking connection...";
-  return provider;
-};
-
-export function AppShell({
-  provider,
-  agentRoute,
-  agentTraceCount,
-  retrievalStrategy,
-  retrievalQueryCount,
-  conversations,
-  activeConversationId,
-  loadingConversationId,
-  deletingConversationId,
-  isLoadingConversations,
-  conversationError,
-  onNewChat,
-  onSelectConversation,
-  onDeleteConversation,
-  children
-}: AppShellProps) {
-  const { user, logout } = useAuth();
-  const isProviderConnected = provider !== "not connected" && provider !== "checking";
-
-  return (
-    <main className="min-h-screen bg-[#f5f7f7] text-ink">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-5 sm:px-6 lg:px-8">
-        <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <Image src="/icon.svg" alt="Cortex AI logo" width={40} height={40} className="rounded-xl" />
-              <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Cortex AI</h1>
-            </div>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">
-              Knowledge assistant for grounded answers, document retrieval, and agent workflows.
-            </p>
-          </div>
-          <div className="flex flex-col gap-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm sm:items-end">
-            <div className="flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  provider === "checking"
-                    ? "bg-amber-400"
-                    : isProviderConnected
-                      ? "bg-emerald-500"
-                      : "bg-red-500"
-                }`}
-                aria-hidden="true"
-              />
-              <span className="capitalize">{formatProvider(provider)}</span>
-            </div>
-            <span className="text-xs capitalize text-slate-500">
-              Route {agentRoute.replaceAll("_", " ")} | {agentTraceCount} steps
-            </span>
-            <span className="text-xs capitalize text-slate-500">
-              Retrieval {retrievalStrategy.replaceAll("_", " ")} | {retrievalQueryCount} queries
-            </span>
-          </div>
-        </header>
-
-        <section className="grid flex-1 gap-5 py-5 lg:grid-cols-[320px_1fr]">
-          <aside className="hidden border-r border-slate-200 pr-5 lg:block">
-            <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-900">Workspace</h2>
-              <p className="mt-1 text-xs text-slate-500">{user?.name} · {user?.role.toLowerCase()}</p>
-              <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
-                <Button className="w-full justify-start text-left" onClick={onNewChat}>
-                  New chat
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="w-full justify-start text-left"
-                  onClick={() => void logout()}
-                >
-                  Sign out
-                </Button>
-                <div>
-                  <h3 className="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">
-                    Chat sessions
-                  </h3>
-                  <div className="space-y-2">
-                    {conversationError && (
-                      <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-                        {conversationError}
-                      </p>
-                    )}
-                    {isLoadingConversations && (
-                      <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                        Loading sessions...
-                      </p>
-                    )}
-                    {!isLoadingConversations && conversations.length === 0 && (
-                      <p className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                        No saved chats yet.
-                      </p>
-                    )}
-                    {!isLoadingConversations &&
-                      conversations.map((conversation) => (
-                        <div
-                          key={conversation.id}
-                          className="flex items-center gap-2 rounded-md border border-slate-200 bg-white p-2"
-                        >
-                          <button
-                            type="button"
-                            disabled={loadingConversationId === conversation.id}
-                            onClick={() => onSelectConversation(conversation.id)}
-                            className={`min-w-0 flex-1 text-left text-xs leading-5 ${
-                              activeConversationId === conversation.id ? "text-clinical" : "text-slate-700"
-                            }`}
-                          >
-                            <span className="block truncate font-medium">{conversation.title}</span>
-                            <span className="text-slate-500">
-                              {loadingConversationId === conversation.id
-                                ? "Restoring..."
-                                : `${conversation.messageCount} messages | ${conversation.documentIds.length} sources`}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deletingConversationId === conversation.id}
-                            onClick={() => onDeleteConversation(conversation.id)}
-                            className="rounded px-2 py-1 text-xs text-slate-500 hover:bg-slate-100 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            {deletingConversationId === conversation.id ? "Deleting" : "Delete"}
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-900">
-              Conversations and documents are isolated to your organization workspace.
-            </div>
-          </aside>
-
-          {children}
-        </section>
-      </div>
-    </main>
-  );
+export function AppShell({ children, provider }: { children: ReactNode; provider?: string }) {
+  const { user, logout } = useAuth(); const pathname = usePathname(); const router = useRouter();
+  const [collapsed, setCollapsed] = useState(false); const [mobileOpen, setMobileOpen] = useState(false); const [detectedProvider, setDetectedProvider] = useState("checking");
+  useEffect(() => { if (provider) return; const controller = new AbortController(); getApiHealth(controller.signal).then((health) => setDetectedProvider(health.providers.llm)).catch(() => setDetectedProvider("not connected")); return () => controller.abort(); }, [provider]);
+  const activeProvider = provider ?? detectedProvider;
+  const providerLabel = activeProvider === "openai" ? "OpenAI" : activeProvider === "mock" ? "Mock" : activeProvider === "checking" ? "Checking" : "Not connected";
+  const providerTone: BadgeTone = activeProvider === "checking" ? "warning" : activeProvider === "not connected" ? "danger" : "success";
+  const sidebar = <><div className="flex h-14 items-center border-b border-border px-3"><div className="flex min-w-0 flex-1 items-center gap-2.5"><Image src="/icon.svg" alt="Cortex AI" width={32} height={32} className="rounded-control"/>{!collapsed && <div className="min-w-0"><p className="truncate text-small font-semibold">Cortex AI</p><p className="truncate text-caption text-text-muted">Organization workspace</p></div>}</div>{!collapsed && <ChevronDown className="h-4 w-4 text-text-muted"/>}</div>
+    <nav className="flex-1 space-y-1 p-2" aria-label="Primary navigation">{navItems.map(({ href, label, icon: Icon }) => { const active = href === "/" ? pathname === "/" : pathname.startsWith(href); const item = <Link href={href} onClick={() => setMobileOpen(false)} className={cn("focus-ring relative flex h-control items-center gap-3 rounded-control px-3 text-small font-medium transition-colors duration-150", active ? "bg-primary-soft text-primary before:absolute before:-left-2 before:h-5 before:w-0.5 before:bg-primary" : "text-text-secondary hover:bg-canvas hover:text-text-primary", collapsed && "justify-center px-0")}><Icon className="h-4 w-4 shrink-0" strokeWidth={1.75}/>{!collapsed && label}</Link>; return collapsed ? <Tooltip key={href} content={label}>{item}</Tooltip> : <span key={href}>{item}</span>; })}</nav>
+    <div className="border-t border-border p-2"><DropdownMenu align="start" trigger={<button className={cn("focus-ring flex w-full items-center gap-2 rounded-control p-2 text-left hover:bg-canvas", collapsed && "justify-center")}><Avatar name={user?.name ?? "User"}/>{!collapsed && <><span className="min-w-0 flex-1"><span className="block truncate text-small font-medium">{user?.name}</span><span className="block text-caption capitalize text-text-muted">{user?.role.toLowerCase()}</span></span><ChevronDown className="h-4 w-4 text-text-muted"/></>}</button>}><DropdownItem onSelect={() => router.push("/profile")}><UserRound className="h-4 w-4"/>Profile</DropdownItem><DropdownItem onSelect={() => router.push("/settings")}><Settings className="h-4 w-4"/>Organization settings</DropdownItem><DropdownSeparator/><DropdownItem danger onSelect={() => void logout()}><LogOut className="h-4 w-4"/>Sign out</DropdownItem></DropdownMenu></div></>;
+  return <div className="min-h-screen bg-canvas text-text-primary"><aside className={cn("fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-border bg-sidebar lg:flex", collapsed ? "w-16" : "w-60")}>{sidebar}<button aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} onClick={() => setCollapsed((value) => !value)} className="focus-ring absolute -right-3 top-[72px] flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-text-muted"><PanelLeftClose className={cn("h-3.5 w-3.5", collapsed && "rotate-180")}/></button></aside>{mobileOpen && <><button className="fixed inset-0 z-30 bg-ink/30 lg:hidden" onClick={() => setMobileOpen(false)} aria-label="Close navigation"/><aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col border-r border-border bg-sidebar lg:hidden">{sidebar}</aside></>}<div className={cn("min-h-screen transition-[padding] duration-150", collapsed ? "lg:pl-16" : "lg:pl-60")}><header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-surface px-4 sm:px-6"><div className="flex items-center gap-3"><Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setMobileOpen(true)} aria-label="Open navigation"><Menu className="h-4 w-4"/></Button><h1 className="text-body-large font-semibold">{titleFor(pathname)}</h1></div><div className="flex items-center gap-2"><Badge tone={providerTone}><span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current"/>{providerLabel}</Badge><Tooltip content="Help and documentation"><Button variant="ghost" size="sm" aria-label="Help"><CircleHelp className="h-4 w-4"/></Button></Tooltip></div></header>{children}</div></div>;
 }

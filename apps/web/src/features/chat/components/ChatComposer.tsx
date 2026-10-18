@@ -1,46 +1,17 @@
 "use client";
-
-import { useRef } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
+import { FileText, LockKeyhole, Send, Square } from "lucide-react";
+import { useRef, useState } from "react";
+import type { DocumentSummary } from "@/features/documents/types/document.types";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Tooltip } from "@/components/ui/tooltip";
 
-const composerSchema = z.object({
-  content: z.string().max(20_000, "Messages cannot exceed 20,000 characters.").refine((value) => value.trim().length > 0, "Enter a message.")
-});
-type ComposerValues = z.infer<typeof composerSchema>;
-
-type ChatComposerProps = { isStreaming: boolean; selectedDocumentCount: number; onSubmit: (content: string) => void };
-
-export function ChatComposer({ isStreaming, selectedDocumentCount, onSubmit }: ChatComposerProps) {
-  const formRef = useRef<HTMLFormElement>(null);
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<ComposerValues>({
-    resolver: zodResolver(composerSchema), defaultValues: { content: "" }
-  });
-  const content = watch("content");
-  const canSubmit = content.trim().length > 0 && !isStreaming;
-  const contextLabel = selectedDocumentCount > 0
-    ? `Using ${selectedDocumentCount} selected source${selectedDocumentCount === 1 ? "" : "s"}`
-    : "No sources selected";
-  const submit = handleSubmit(({ content: value }) => { onSubmit(value.trim()); reset(); });
-
-  return <form ref={formRef} onSubmit={submit} noValidate className="mt-4">
-    <div className="mb-2 flex items-center justify-between gap-3 text-xs text-slate-500"><span>{contextLabel}</span>{isStreaming && <span>Generating answer...</span>}</div>
-    <div className="flex gap-3">
-      <div className="flex-1">
-        <Textarea
-          {...register("content")}
-          onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); formRef.current?.requestSubmit(); } }}
-          placeholder={selectedDocumentCount > 0 ? "Ask a question about the selected sources..." : "Ask a general question, or select sources for document-backed answers..."}
-          rows={2}
-          aria-invalid={Boolean(errors.content)}
-          className="w-full"
-        />
-        {errors.content && <p className="mt-1 text-xs text-red-600">{errors.content.message}</p>}
-      </div>
-      <Button type="submit" disabled={!canSubmit} className="h-14 px-5">{isStreaming ? "Streaming" : "Send"}</Button>
-    </div>
-  </form>;
+type Props = { isStreaming: boolean; documents: DocumentSummary[]; selectedDocumentIds: string[]; onSelectionChange: (ids: string[]) => void; onSubmit: (content: string) => void; onStop: () => void };
+export function ChatComposer({ isStreaming, documents, selectedDocumentIds, onSelectionChange, onSubmit, onStop }: Props) {
+  const [content, setContent] = useState(""); const textareaRef = useRef<HTMLTextAreaElement>(null); const ready = documents.filter((document) => document.status === "ready");
+  const resize = () => { const node = textareaRef.current; if (!node) return; node.style.height = "auto"; node.style.height = `${Math.min(node.scrollHeight, 144)}px`; };
+  const submit = () => { const value = content.trim(); if (!value || isStreaming) return; onSubmit(value); setContent(""); requestAnimationFrame(resize); };
+  return <div className="px-4 pb-5 sm:px-6"><div className="mx-auto max-w-[760px]"><div className="relative rounded-card border border-border-strong bg-surface p-2 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15">
+    <textarea ref={textareaRef} value={content} onChange={(event) => { setContent(event.target.value); resize(); }} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); submit(); } }} rows={1} placeholder={ready.length ? "Ask a question about your documents…" : "Ask Cortex a question…"} className="max-h-36 min-h-12 w-full resize-none border-0 bg-transparent px-2 py-2 text-body outline-none placeholder:text-text-muted" aria-label="Message"/>
+    <div className="flex items-center justify-between gap-2"><details className="relative"><summary className="focus-ring flex h-control cursor-pointer list-none items-center gap-2 rounded-control px-2 text-small text-text-secondary hover:bg-canvas"><FileText className="h-4 w-4"/>{selectedDocumentIds.length ? `${selectedDocumentIds.length} selected` : "All documents"}</summary><div className="absolute bottom-10 left-0 z-30 w-72 rounded-card border border-border bg-surface p-2 shadow-overlay"><p className="px-2 py-1 text-caption font-medium text-text-muted">DOCUMENT SCOPE</p>{ready.length === 0 ? <p className="px-2 py-3 text-small text-text-secondary">No ready documents.</p> : ready.map((document) => <label key={document.id} className="flex cursor-pointer items-center gap-2 rounded-control px-2 py-2 text-small hover:bg-canvas"><input type="checkbox" className="accent-primary" checked={selectedDocumentIds.includes(document.id)} onChange={(event) => onSelectionChange(event.target.checked ? [...selectedDocumentIds, document.id] : selectedDocumentIds.filter((id) => id !== document.id))}/><span className="truncate font-mono">{document.filename}</span></label>)}</div></details>{isStreaming ? <Button variant="secondary" onClick={onStop}><Square className="h-3.5 w-3.5 fill-current"/>Stop</Button> : <Button onClick={submit} disabled={!content.trim()} aria-label="Send message"><Send className="h-4 w-4"/>Send</Button>}</div>
+  </div><p className="mt-2 flex items-center justify-center gap-1.5 text-center text-caption text-text-muted"><Tooltip content="Documents and chats are isolated to your organization."><span tabIndex={0}><LockKeyhole className="h-3.5 w-3.5"/></span></Tooltip>Answers are generated from your documents and may be incorrect. Not medical advice.</p></div></div>;
 }

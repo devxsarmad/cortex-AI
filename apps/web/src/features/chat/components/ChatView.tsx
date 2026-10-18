@@ -1,100 +1,35 @@
 "use client";
-
-import { useState } from "react";
+import { ChevronLeft, ChevronRight, MessageSquarePlus, PanelRightClose, Search, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useDocuments } from "@/features/documents/hooks/useDocuments";
+import { cn } from "@/utils/cn";
 import { ChatComposer } from "./ChatComposer";
 import { MessageList } from "./MessageList";
-import { PromptSuggestions } from "./PromptSuggestions";
-import { DocumentPanel } from "@/features/documents/components/DocumentPanel";
 import { useChat } from "../hooks/useChat";
 import { useConversations } from "../hooks/useConversations";
-
+import type { ChatSource } from "../types/chat.types";
 const createId = () => crypto.randomUUID();
+const groupFor = (date: string) => { const age = Date.now() - new Date(date).getTime(); return age < 86400000 ? "Today" : age < 172800000 ? "Yesterday" : "Earlier"; };
 
 export function ChatView() {
-  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-  const [activeConversationId, setActiveConversationId] = useState<string | undefined>();
-  const { conversationsQuery, loadMutation, deleteMutation } = useConversations();
-
-  const {
-    messages,
-    isStreaming,
-    provider,
-    agentRoute,
-    agentTraceCount,
-    retrievalStrategy,
-    retrievalQueryCount,
-    restoreMessages,
-    resetMessages,
-    sendMessage
-  } = useChat({
-    documentIds: selectedDocumentIds,
-    conversationId: activeConversationId,
-    onConversationCreated: setActiveConversationId
-  });
-
-  const handleNewChat = () => {
-    setActiveConversationId(undefined);
-    resetMessages();
-  };
-
-  const handleSelectConversation = async (conversationId: string) => {
-    try {
-      const conversation = await loadMutation.mutateAsync(conversationId);
-      setActiveConversationId(conversation.id);
-      setSelectedDocumentIds(conversation.documentIds);
-      restoreMessages(
-        conversation.messages.map((message) => ({
-          ...message,
-          id: createId()
-        }))
-      );
-    } catch (error) {
-      void error;
-    }
-  };
-
-  const handleDeleteConversation = async (conversationId: string) => {
-    try {
-      await deleteMutation.mutateAsync(conversationId);
-      if (activeConversationId === conversationId) {
-        handleNewChat();
-      }
-    } catch (error) {
-      void error;
-    }
-  };
-
-  return (
-    <AppShell
-      provider={provider}
-      agentRoute={agentRoute}
-      agentTraceCount={agentTraceCount}
-      retrievalStrategy={retrievalStrategy}
-      retrievalQueryCount={retrievalQueryCount}
-      conversations={conversationsQuery.data ?? []}
-      activeConversationId={activeConversationId}
-      loadingConversationId={loadMutation.isPending ? loadMutation.variables : undefined}
-      deletingConversationId={deleteMutation.isPending ? deleteMutation.variables : undefined}
-      isLoadingConversations={conversationsQuery.isPending}
-      conversationError={(loadMutation.error ?? deleteMutation.error ?? conversationsQuery.error)?.message}
-      onNewChat={handleNewChat}
-      onSelectConversation={(conversationId) => void handleSelectConversation(conversationId)}
-      onDeleteConversation={(conversationId) => void handleDeleteConversation(conversationId)}
-    >
-      <div className="flex min-h-[70vh] flex-col">
-        <DocumentPanel
-          selectedDocumentIds={selectedDocumentIds}
-          onSelectedDocumentIdsChange={setSelectedDocumentIds}
-        />
-        <MessageList messages={messages} selectedDocumentCount={selectedDocumentIds.length} />
-        <PromptSuggestions disabled={isStreaming} onSelect={(prompt) => void sendMessage(prompt)} />
-        <ChatComposer
-          isStreaming={isStreaming}
-          selectedDocumentCount={selectedDocumentIds.length}
-          onSubmit={(content) => void sendMessage(content)}
-        />
-      </div>
-    </AppShell>
-  );
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]); const [activeConversationId, setActiveConversationId] = useState<string>(); const [search, setSearch] = useState(""); const [historyOpen, setHistoryOpen] = useState(true); const [sourcesOpen, setSourcesOpen] = useState(true); const [highlightedSource, setHighlightedSource] = useState<string>();
+  const { conversationsQuery, loadMutation, deleteMutation } = useConversations(); const { documentsQuery } = useDocuments();
+  const chat = useChat({ documentIds: selectedDocumentIds, conversationId: activeConversationId, onConversationCreated: setActiveConversationId });
+  const documents = useMemo(() => documentsQuery.data ?? [], [documentsQuery.data]); const conversations = conversationsQuery.data ?? [];
+  const sources = useMemo(() => { const map = new Map<string, ChatSource>(); chat.messages.forEach((message) => message.sources?.forEach((source) => map.set(source.id, source))); return [...map.values()]; }, [chat.messages]);
+  const filtered = conversations.filter((conversation) => conversation.title.toLowerCase().includes(search.toLowerCase()));
+  const handleNew = () => { setActiveConversationId(undefined); chat.resetMessages(); };
+  const load = async (id: string) => { try { const conversation = await loadMutation.mutateAsync(id); setActiveConversationId(conversation.id); setSelectedDocumentIds(conversation.documentIds); chat.restoreMessages(conversation.messages.map((message) => ({ ...message, id: createId() }))); } catch {} };
+  const remove = async (id: string) => { try { await deleteMutation.mutateAsync(id); if (activeConversationId === id) handleNew(); } catch {} };
+  useEffect(() => { const shortcut = (event: KeyboardEvent) => { if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); setHistoryOpen(true); setTimeout(() => document.getElementById("conversation-search")?.focus(), 0); } }; window.addEventListener("keydown", shortcut); return () => window.removeEventListener("keydown", shortcut); }, []);
+  return <AppShell provider={chat.provider}><div className="flex h-[calc(100vh-56px)] overflow-hidden">
+    <aside className={cn("relative hidden shrink-0 border-r border-border bg-sidebar md:flex md:flex-col", historyOpen ? "w-[280px]" : "w-0 overflow-visible")}><button onClick={() => setHistoryOpen(!historyOpen)} className="focus-ring absolute -right-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-text-muted" aria-label={historyOpen ? "Collapse conversations" : "Expand conversations"}>{historyOpen ? <ChevronLeft className="h-3.5 w-3.5"/> : <ChevronRight className="h-3.5 w-3.5"/>}</button>{historyOpen && <><div className="space-y-3 border-b border-border p-3"><Button className="w-full" onClick={handleNew}><MessageSquarePlus className="h-4 w-4"/>New chat</Button><div className="relative"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-text-muted"/><Input id="conversation-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search conversations" className="pl-8"/></div></div><div className="flex-1 overflow-y-auto p-2">{conversationsQuery.isPending && <div className="space-y-3 p-2"><Skeleton className="h-4 w-1/3"/><Skeleton className="h-12"/><Skeleton className="h-12"/></div>}{conversationsQuery.error && <div className="m-2 rounded-control bg-danger-soft p-3 text-small text-danger"><p>{conversationsQuery.error.message}</p><Button variant="ghost" size="sm" className="mt-2" onClick={() => void conversationsQuery.refetch()}>Retry</Button></div>}{["Today", "Yesterday", "Earlier"].map((group) => { const items = filtered.filter((item) => groupFor(item.updatedAt) === group); return items.length ? <section key={group} className="mb-4"><h2 className="px-2 py-1 text-caption font-semibold uppercase tracking-wide text-text-muted">{group}</h2>{items.map((conversation) => <div key={conversation.id} className={cn("group flex items-center rounded-control", activeConversationId === conversation.id && "bg-primary-soft")}><button onClick={() => void load(conversation.id)} className="min-w-0 flex-1 px-2 py-2 text-left"><span className="block truncate text-small font-medium">{conversation.title}</span><span className="text-caption text-text-muted">{conversation.messageCount} messages</span></button><Dialog trigger={<Button variant="ghost" size="sm" className="mr-1 opacity-0 group-hover:opacity-100" aria-label={`Delete ${conversation.title}`}><Trash2 className="h-4 w-4"/></Button>} title="Delete conversation?" description="This conversation will be permanently removed." footer={<><DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose><DialogClose asChild><Button variant="danger" onClick={() => void remove(conversation.id)}>Delete</Button></DialogClose></>}/></div>)}</section> : null; })}</div></>}</aside>
+    <section className="flex min-w-0 flex-1 flex-col bg-surface"><MessageList messages={chat.messages} selectedDocumentCount={selectedDocumentIds.length} documentCount={documents.length} isStreaming={chat.isStreaming} route={chat.agentRoute} traceCount={chat.agentTraceCount} retrieval={chat.retrievalStrategy} queryCount={chat.retrievalQueryCount} onPrompt={(prompt) => void chat.sendMessage(prompt)} onSourceSelect={(id) => { setSourcesOpen(true); setHighlightedSource(id); }}/><ChatComposer isStreaming={chat.isStreaming} documents={documents} selectedDocumentIds={selectedDocumentIds} onSelectionChange={setSelectedDocumentIds} onSubmit={(content) => void chat.sendMessage(content)} onStop={chat.stopStreaming}/></section>
+    <aside className={cn("relative hidden shrink-0 border-l border-border bg-sidebar xl:flex xl:flex-col", sourcesOpen ? "w-80" : "w-0 overflow-visible")}><button onClick={() => setSourcesOpen(!sourcesOpen)} className="focus-ring absolute -left-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-surface text-text-muted" aria-label={sourcesOpen ? "Collapse sources" : "Expand sources"}><PanelRightClose className={cn("h-3.5 w-3.5", !sourcesOpen && "rotate-180")}/></button>{sourcesOpen && <><div className="border-b border-border p-4"><h2 className="font-semibold">Sources</h2><p className="mt-1 text-caption text-text-muted">Citations used in this conversation</p></div><div className="flex-1 space-y-3 overflow-y-auto p-3">{sources.length === 0 ? <p className="rounded-card border border-dashed border-border-strong p-4 text-center text-small text-text-muted">Sources will appear here after a document-grounded answer.</p> : sources.map((source, index) => <details key={source.id} open={highlightedSource === source.id} className={cn("rounded-card border bg-surface p-3 transition-colors duration-150", highlightedSource === source.id ? "border-primary bg-primary-soft" : "border-border")}><summary className="cursor-pointer list-none"><div className="flex gap-2"><span className="font-mono text-caption font-semibold text-primary">[{index + 1}]</span><div className="min-w-0"><p className="truncate font-mono text-caption font-medium">{source.filename}</p><p className="mt-1 line-clamp-3 text-caption leading-5 text-text-secondary">{source.content}</p></div></div></summary><p className="mt-3 border-t border-border pt-3 text-caption leading-5 text-text-secondary">{source.content}</p></details>)}</div></>}</aside>
+  </div></AppShell>;
 }

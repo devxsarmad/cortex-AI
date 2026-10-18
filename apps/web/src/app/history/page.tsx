@@ -1,0 +1,12 @@
+"use client";
+import { History, Search, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { AppShell } from "@/components/layout/AppShell";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogClose } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RequireAuth } from "@/features/auth/AuthProvider";
+import { useConversations } from "@/features/chat/hooks/useConversations";
+export default function HistoryPage() { const { conversationsQuery, deleteMutation } = useConversations(); const [search, setSearch] = useState(""); const conversations = (conversationsQuery.data ?? []).filter((item) => item.title.toLowerCase().includes(search.toLowerCase())); return <RequireAuth><AppShell provider="openai"><div className="mx-auto max-w-4xl p-4 sm:p-6"><h2 className="text-page font-semibold">Conversation history</h2><p className="mt-1 text-text-secondary">Find and manage previous conversations.</p><div className="relative mt-6"><Search className="absolute left-2.5 top-2.5 h-4 w-4 text-text-muted"/><Input value={search} onChange={(event) => setSearch(event.target.value)} className="pl-8" placeholder="Search conversations"/></div><div className="mt-4 space-y-2">{conversationsQuery.isPending ? <><Skeleton className="h-16"/><Skeleton className="h-16"/></> : conversations.length === 0 ? <EmptyState icon={History} title="No conversations found" description="Your saved conversations will appear here."/> : conversations.map((conversation) => <div key={conversation.id} className="flex items-center gap-4 rounded-card border border-border bg-surface p-4"><div className="min-w-0 flex-1"><p className="truncate font-medium">{conversation.title}</p><p className="mt-1 text-caption text-text-muted">{conversation.messageCount} messages · {new Date(conversation.updatedAt).toLocaleDateString()}</p></div><Dialog trigger={<Button variant="ghost" size="sm" aria-label={`Delete ${conversation.title}`}><Trash2 className="h-4 w-4"/></Button>} title="Delete conversation?" description="This conversation will be permanently removed." footer={<><DialogClose asChild><Button variant="secondary">Cancel</Button></DialogClose><DialogClose asChild><Button variant="danger" onClick={() => void deleteMutation.mutateAsync(conversation.id)}>Delete</Button></DialogClose></>}/></div>)}</div></div></AppShell></RequireAuth>; }

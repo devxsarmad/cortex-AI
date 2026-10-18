@@ -13,6 +13,7 @@ type StreamChatOptions = {
   onMeta?: (meta: ChatProviderMeta) => void;
   onSources?: (sources: ChatSource[]) => void;
   onTools?: (tools: ChatToolResult[]) => void;
+  signal?: AbortSignal;
 };
 
 const parseSseBlock = (block: string) => {
@@ -30,13 +31,15 @@ export const streamChat = async ({
   onToken,
   onMeta,
   onSources,
-  onTools
+  onTools,
+  signal
 }: StreamChatOptions) => {
   const response = await authFetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
     },
+    signal,
     body: JSON.stringify({
       messages: messages.map(({ role, content }) => ({ role, content })),
       documentIds
