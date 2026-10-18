@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { setAccessToken } from "@/services/api-client";
 import { authApi, type AuthSession, type AuthUser, type LoginInput, type RegisterInput } from "@/services/auth.service";
-import { Skeleton } from "@/components/ui/skeleton";
+import { CortexLoader } from "@/components/ui/cortex-loader";
 
 const sessionKey = ["auth", "session"] as const;
 type AuthContextValue = {
@@ -89,6 +89,6 @@ export const useAuth = () => {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
-  if (loading || !user) return <main className="grid min-h-screen place-items-center bg-canvas"><div className="w-64 space-y-3"><Skeleton className="mx-auto h-10 w-10"/><Skeleton className="h-4 w-full"/><Skeleton className="mx-auto h-3 w-2/3"/></div></main>;
+  if (loading || !user) return <main className="min-h-screen bg-canvas"><CortexLoader className="min-h-screen" message="Opening your workspace" detail="Checking your secure session…" /></main>;
   return children;
 }
