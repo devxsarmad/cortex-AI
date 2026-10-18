@@ -4,7 +4,7 @@ import { env } from "../../config/env.js";
 import { HttpStatus } from "../constants/http-status.js";
 import { AppError } from "./app-error.js";
 
-export const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
+export const errorHandler: ErrorRequestHandler = (error, request, response, next) => {
   void next;
   const requestId = response.locals.requestId;
 
@@ -26,7 +26,20 @@ export const errorHandler: ErrorRequestHandler = (error, _request, response, nex
     return;
   }
 
-  console.error(error);
+  const normalizedError = error instanceof Error ? error : new Error(String(error));
+  const prismaError = error as { code?: string; meta?: unknown; clientVersion?: string };
+  console.error(JSON.stringify({
+    level: "error",
+    requestId,
+    method: request.method,
+    path: request.originalUrl,
+    errorName: normalizedError.name,
+    errorMessage: normalizedError.message,
+    errorCode: prismaError.code,
+    errorMeta: prismaError.meta,
+    prismaClientVersion: prismaError.clientVersion,
+    stack: normalizedError.stack
+  }));
 
   response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
     requestId,
