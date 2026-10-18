@@ -56,7 +56,9 @@ const toDetail = (document: DocumentRecord): DocumentDetail => ({
 
 export class DocumentService {
   constructor(private readonly repository: DocumentRepository = documentRepository) {
-    void this.restorePersistedVectors();
+    void this.restorePersistedVectors().catch((error: unknown) => {
+      console.error("Could not restore persisted vectors during startup.", error);
+    });
   }
 
   async uploadDocument(file: Express.Multer.File | undefined, organizationId: string, userId: string): Promise<DocumentRecord> {
