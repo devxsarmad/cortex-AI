@@ -24,6 +24,7 @@ const envSchema = z.object({
   AI_OUTPUT_COST_PER_1K_TOKENS: z.string().optional(),
   CORTEX_DATA_DIR: z.string().default(".cortex-data"),
   DATABASE_URL: z.string().min(1).default("postgresql://cortex:cortex@localhost:5432/cortex?schema=public"),
+  DIRECT_URL: z.string().min(1).optional(),
   JWT_ACCESS_SECRET: z.string().min(32).default(DEVELOPMENT_JWT_SECRET),
   JWT_ACCESS_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.string().optional(),
