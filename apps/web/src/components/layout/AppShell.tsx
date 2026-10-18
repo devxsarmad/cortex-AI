@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import { getCortexWorkspaceLabel, resetCortexUserId } from "@/services/api-client";
+import { useAuth } from "@/features/auth/AuthProvider";
 import type { ConversationSummary } from "@/features/chat/types/conversation.types";
 
 type AppShellProps = {
@@ -44,12 +44,8 @@ export function AppShell({
   onDeleteConversation,
   children
 }: AppShellProps) {
-  const [workspaceLabel, setWorkspaceLabel] = useState("local-user");
+  const { user, logout } = useAuth();
   const isProviderConnected = provider !== "not connected" && provider !== "checking";
-
-  useEffect(() => {
-    setWorkspaceLabel(getCortexWorkspaceLabel());
-  }, []);
 
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-ink">
@@ -91,7 +87,7 @@ export function AppShell({
           <aside className="hidden border-r border-slate-200 pr-5 lg:block">
             <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">Workspace</h2>
-              <p className="mt-1 text-xs text-slate-500">Local owner {workspaceLabel}</p>
+              <p className="mt-1 text-xs text-slate-500">{user?.name} · {user?.role.toLowerCase()}</p>
               <div className="mt-4 space-y-3 text-sm leading-6 text-slate-700">
                 <Button className="w-full justify-start text-left" onClick={onNewChat}>
                   New chat
@@ -100,12 +96,9 @@ export function AppShell({
                   type="button"
                   variant="secondary"
                   className="w-full justify-start text-left"
-                  onClick={() => {
-                    resetCortexUserId();
-                    window.location.reload();
-                  }}
+                  onClick={() => void logout()}
                 >
-                  Switch local workspace
+                  Sign out
                 </Button>
                 <div>
                   <h3 className="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">
@@ -164,8 +157,7 @@ export function AppShell({
             </div>
 
             <div className="mt-4 rounded-lg border border-teal-200 bg-teal-50 p-4 text-sm leading-6 text-teal-900">
-              Conversations and documents are stored locally per Cortex workspace. Switch workspaces to test
-              isolated data.
+              Conversations and documents are isolated to your organization workspace.
             </div>
           </aside>
 

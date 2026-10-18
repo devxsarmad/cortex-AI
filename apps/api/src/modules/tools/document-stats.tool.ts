@@ -1,7 +1,7 @@
 import { documentService } from "../documents/document.service.js";
 
-export const getDocumentStats = (ownerId: string) => {
-  const documents = documentService.listDocuments(ownerId);
+export const getDocumentStats = async (ownerId: string) => {
+  const documents = await documentService.listDocuments(ownerId);
   const byStatus = documents.reduce<Record<string, number>>((counts, document) => {
     counts[document.status] = (counts[document.status] ?? 0) + 1;
     return counts;

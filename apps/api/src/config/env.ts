@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { z } from "zod";
 
+const DEVELOPMENT_JWT_SECRET = "development-access-secret-change-me-now";
+
 const optionalNumber = (value: string | undefined, fallback: number) => {
   if (!value) return fallback;
   const parsed = Number(value);
@@ -21,12 +23,21 @@ const envSchema = z.object({
   AI_INPUT_COST_PER_1K_TOKENS: z.string().optional(),
   AI_OUTPUT_COST_PER_1K_TOKENS: z.string().optional(),
   CORTEX_DATA_DIR: z.string().default(".cortex-data"),
+  DATABASE_URL: z.string().min(1).default("postgresql://cortex:cortex@localhost:5432/cortex?schema=public"),
+  JWT_ACCESS_SECRET: z.string().min(32).default(DEVELOPMENT_JWT_SECRET),
+  JWT_ACCESS_TTL: z.string().default("15m"),
+  REFRESH_TOKEN_TTL_DAYS: z.string().optional(),
+  AUTH_RATE_LIMIT_MAX_REQUESTS: z.string().optional(),
   VECTOR_STORE_PROVIDER: z.enum(["memory", "qdrant"]).default("memory"),
   QDRANT_URL: z.string().url().default("http://localhost:6333"),
   QDRANT_COLLECTION: z.string().default("cortex_chunks")
 });
 
 const parsedEnv = envSchema.parse(process.env);
+
+if (parsedEnv.NODE_ENV === "production" && parsedEnv.JWT_ACCESS_SECRET === DEVELOPMENT_JWT_SECRET) {
+  throw new Error("JWT_ACCESS_SECRET must be set to a unique value in production.");
+}
 
 export const env = {
   nodeEnv: parsedEnv.NODE_ENV,
@@ -42,6 +53,11 @@ export const env = {
   aiInputCostPer1kTokens: optionalNumber(parsedEnv.AI_INPUT_COST_PER_1K_TOKENS, 0),
   aiOutputCostPer1kTokens: optionalNumber(parsedEnv.AI_OUTPUT_COST_PER_1K_TOKENS, 0),
   cortexDataDir: parsedEnv.CORTEX_DATA_DIR,
+  databaseUrl: parsedEnv.DATABASE_URL,
+  jwtAccessSecret: parsedEnv.JWT_ACCESS_SECRET,
+  jwtAccessTtl: parsedEnv.JWT_ACCESS_TTL,
+  refreshTokenTtlDays: optionalNumber(parsedEnv.REFRESH_TOKEN_TTL_DAYS, 30),
+  authRateLimitMaxRequests: optionalNumber(parsedEnv.AUTH_RATE_LIMIT_MAX_REQUESTS, 10),
   vectorStoreProvider: parsedEnv.VECTOR_STORE_PROVIDER,
   qdrantUrl: parsedEnv.QDRANT_URL.replace(/\/$/, ""),
   qdrantCollection: parsedEnv.QDRANT_COLLECTION

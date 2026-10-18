@@ -11,14 +11,15 @@ const buckets = new Map<string, RateLimitBucket>();
 
 const getClientKey = (requestIp?: string) => requestIp || "unknown";
 
-export const rateLimit: RequestHandler = (request, response, next) => {
+export const createRateLimit = (options?: { maxRequests?: number; keyPrefix?: string }): RequestHandler => (request, response, next) => {
   if (request.method === "OPTIONS" || request.path === "/health") {
     next();
     return;
   }
 
   const now = Date.now();
-  const key = getClientKey(request.ip);
+  const key = `${options?.keyPrefix ?? "global"}:${getClientKey(request.ip)}`;
+  const maxRequests = options?.maxRequests ?? env.rateLimitMaxRequests;
   const current = buckets.get(key);
   const bucket =
     current && current.resetAt > now
@@ -31,11 +32,11 @@ export const rateLimit: RequestHandler = (request, response, next) => {
   bucket.count += 1;
   buckets.set(key, bucket);
 
-  response.setHeader("X-RateLimit-Limit", String(env.rateLimitMaxRequests));
-  response.setHeader("X-RateLimit-Remaining", String(Math.max(env.rateLimitMaxRequests - bucket.count, 0)));
+  response.setHeader("X-RateLimit-Limit", String(maxRequests));
+  response.setHeader("X-RateLimit-Remaining", String(Math.max(maxRequests - bucket.count, 0)));
   response.setHeader("X-RateLimit-Reset", String(Math.ceil(bucket.resetAt / 1000)));
 
-  if (bucket.count > env.rateLimitMaxRequests) {
+  if (bucket.count > maxRequests) {
     response.status(HttpStatus.TOO_MANY_REQUESTS).json({
       error: "Too many requests. Please slow down and try again shortly."
     });
@@ -44,3 +45,5 @@ export const rateLimit: RequestHandler = (request, response, next) => {
 
   next();
 };
+
+export const rateLimit = createRateLimit();

@@ -4,7 +4,7 @@ import type {
   ChatSource,
   ChatToolResult
 } from "@/features/chat/types/chat.types";
-import { API_URL, createApiHeaders } from "./api-client";
+import { API_URL, authFetch } from "./api-client";
 
 type StreamChatOptions = {
   messages: ChatMessage[];
@@ -32,11 +32,11 @@ export const streamChat = async ({
   onSources,
   onTools
 }: StreamChatOptions) => {
-  const response = await fetch(`${API_URL}/api/chat/stream`, {
+  const response = await authFetch(`${API_URL}/api/chat/stream`, {
     method: "POST",
-    headers: createApiHeaders({
+    headers: {
       "Content-Type": "application/json"
-    }),
+    },
     body: JSON.stringify({
       messages: messages.map(({ role, content }) => ({ role, content })),
       documentIds

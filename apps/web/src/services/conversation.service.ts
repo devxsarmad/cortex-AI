@@ -1,6 +1,6 @@
 import type { ConversationDetail, ConversationSummary } from "@/features/chat/types/conversation.types";
 import type { ChatMessage } from "@/features/chat/types/chat.types";
-import { API_URL, createApiHeaders } from "./api-client";
+import { API_URL, authFetch } from "./api-client";
 
 type ConversationPayload = {
   conversation: ConversationDetail;
@@ -22,11 +22,11 @@ const toPersistedMessages = (messages: ChatMessage[]) => {
 };
 
 export const createConversation = async () => {
-  const response = await fetch(`${API_URL}/api/conversations`, {
+  const response = await authFetch(`${API_URL}/api/conversations`, {
     method: "POST",
-    headers: createApiHeaders({
+    headers: {
       "Content-Type": "application/json"
-    }),
+    },
     body: JSON.stringify({})
   });
 
@@ -39,9 +39,7 @@ export const createConversation = async () => {
 };
 
 export const listConversations = async () => {
-  const response = await fetch(`${API_URL}/api/conversations`, {
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/conversations`);
 
   if (!response.ok) {
     throw new Error("Could not load chat sessions.");
@@ -52,9 +50,7 @@ export const listConversations = async () => {
 };
 
 export const getConversation = async (conversationId: string) => {
-  const response = await fetch(`${API_URL}/api/conversations/${conversationId}`, {
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/conversations/${conversationId}`);
 
   if (!response.ok) {
     throw new Error("Could not restore chat session.");
@@ -69,11 +65,11 @@ export const saveConversationMessages = async (
   messages: ChatMessage[],
   documentIds: string[]
 ) => {
-  const response = await fetch(`${API_URL}/api/conversations/${conversationId}/messages`, {
+  const response = await authFetch(`${API_URL}/api/conversations/${conversationId}/messages`, {
     method: "PUT",
-    headers: createApiHeaders({
+    headers: {
       "Content-Type": "application/json"
-    }),
+    },
     body: JSON.stringify({
       messages: toPersistedMessages(messages),
       documentIds
@@ -89,10 +85,7 @@ export const saveConversationMessages = async (
 };
 
 export const deleteConversation = async (conversationId: string) => {
-  const response = await fetch(`${API_URL}/api/conversations/${conversationId}`, {
-    method: "DELETE",
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/conversations/${conversationId}`, { method: "DELETE" });
 
   if (!response.ok) {
     throw new Error("Could not delete chat session.");

@@ -3,7 +3,7 @@ import type {
   DocumentDetail,
   DocumentSummary
 } from "@/features/documents/types/document.types";
-import { API_URL, createApiHeaders } from "./api-client";
+import { API_URL, authFetch } from "./api-client";
 
 type UploadDocumentResponse = {
   document: DocumentDetail;
@@ -25,9 +25,8 @@ export const uploadDocument = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(`${API_URL}/api/documents`, {
+  const response = await authFetch(`${API_URL}/api/documents`, {
     method: "POST",
-    headers: createApiHeaders(),
     body: formData
   });
 
@@ -41,9 +40,7 @@ export const uploadDocument = async (file: File) => {
 };
 
 export const listDocuments = async () => {
-  const response = await fetch(`${API_URL}/api/documents`, {
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/documents`);
 
   if (!response.ok) {
     throw new Error("Could not load documents.");
@@ -54,9 +51,7 @@ export const listDocuments = async () => {
 };
 
 export const listDocumentChunks = async (documentId: string) => {
-  const response = await fetch(`${API_URL}/api/documents/${documentId}/chunks`, {
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/documents/${documentId}/chunks`);
 
   if (!response.ok) {
     throw new Error("Could not load document chunks.");
@@ -67,10 +62,7 @@ export const listDocumentChunks = async (documentId: string) => {
 };
 
 export const retryDocument = async (documentId: string) => {
-  const response = await fetch(`${API_URL}/api/documents/${documentId}/retry`, {
-    method: "POST",
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/documents/${documentId}/retry`, { method: "POST" });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
@@ -82,10 +74,7 @@ export const retryDocument = async (documentId: string) => {
 };
 
 export const deleteDocument = async (documentId: string) => {
-  const response = await fetch(`${API_URL}/api/documents/${documentId}`, {
-    method: "DELETE",
-    headers: createApiHeaders()
-  });
+  const response = await authFetch(`${API_URL}/api/documents/${documentId}`, { method: "DELETE" });
 
   if (!response.ok) {
     const payload = await response.json().catch(() => null);

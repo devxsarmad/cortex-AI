@@ -59,7 +59,7 @@ export class DocumentService {
     void this.restorePersistedVectors();
   }
 
-  async uploadDocument(file: Express.Multer.File | undefined, ownerId: string): Promise<DocumentRecord> {
+  async uploadDocument(file: Express.Multer.File | undefined, organizationId: string, userId: string): Promise<DocumentRecord> {
     if (!file) {
       throw new AppError("A document file is required.", HttpStatus.BAD_REQUEST);
     }
@@ -69,7 +69,8 @@ export class DocumentService {
     const now = new Date().toISOString();
     const document: DocumentRecord = {
       id: randomUUID(),
-      ownerId,
+      organizationId,
+      createdById: userId,
       filename: file.originalname,
       mimeType: file.mimetype || "application/octet-stream",
       sizeBytes: file.size,
@@ -87,19 +88,19 @@ export class DocumentService {
       chunks: []
     };
 
-    this.repository.save(document);
+    await this.repository.save(document);
 
     try {
       const extractedText = await this.extractText(file);
-      return this.processDocument(document.id, extractedText);
+      return this.processDocument(document.id, organizationId, extractedText);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Document extraction failed.";
-      return this.markFailed(document.id, message);
+      return this.markFailed(document.id, organizationId, message);
     }
   }
 
-  async retryDocument(id: string, ownerId: string): Promise<DocumentRecord> {
-    const document = this.getDocument(id, ownerId);
+  async retryDocument(id: string, organizationId: string): Promise<DocumentRecord> {
+    const document = await this.getDocument(id, organizationId);
     if (document.status === "needs_parser") {
       throw new AppError("This document still needs a parser that Cortex does not support yet.", HttpStatus.BAD_REQUEST);
     }
@@ -108,51 +109,48 @@ export class DocumentService {
       throw new AppError("Document has no extracted text to process.", HttpStatus.BAD_REQUEST);
     }
 
-    return this.processDocument(document.id, document.extractedText);
+    return this.processDocument(document.id, organizationId, document.extractedText);
   }
 
-  async deleteDocument(id: string, ownerId: string) {
-    this.getDocument(id, ownerId);
+  async deleteDocument(id: string, organizationId: string) {
+    await this.getDocument(id, organizationId);
     await vectorStore.deleteByDocumentId(id);
-    this.repository.delete(id);
+    await this.repository.delete(id, organizationId);
   }
 
-  listDocuments(ownerId: string): DocumentSummary[] {
-    return this.repository
-      .list()
-      .filter((document) => document.ownerId === ownerId)
+  async listDocuments(organizationId: string): Promise<DocumentSummary[]> {
+    return (await this.repository.list(organizationId))
       .sort((left, right) => right.createdAt.localeCompare(left.createdAt))
       .map(toSummary);
   }
 
-  getDocument(id: string, ownerId?: string): DocumentRecord {
-    const document = this.repository.findById(id);
-    if (!document || (ownerId && document.ownerId !== ownerId)) {
+  async getDocument(id: string, organizationId?: string): Promise<DocumentRecord> {
+    const document = await this.repository.findById(id, organizationId);
+    if (!document) {
       throw new AppError("Document not found.", HttpStatus.NOT_FOUND);
     }
 
     return document;
   }
 
-  getDocumentDetail(id: string, ownerId: string): DocumentDetail {
-    return toDetail(this.getDocument(id, ownerId));
+  async getDocumentDetail(id: string, organizationId: string): Promise<DocumentDetail> {
+    return toDetail(await this.getDocument(id, organizationId));
   }
 
-  listDocumentChunks(id: string, ownerId: string) {
-    return this.getDocument(id, ownerId).chunks;
+  async listDocumentChunks(id: string, organizationId: string) {
+    return (await this.getDocument(id, organizationId)).chunks;
   }
 
   async searchDocuments(input: {
-    ownerId: string;
+    organizationId: string;
     query: string;
     limit: number;
     documentId?: string;
     documentIds?: string[];
   }) {
     const requestedIds = new Set(input.documentIds ?? (input.documentId ? [input.documentId] : []));
-    const ownedIds = this.repository
-      .list()
-      .filter((document) => document.ownerId === input.ownerId && document.status === "ready")
+    const ownedIds = (await this.repository.list(input.organizationId))
+      .filter((document) => document.status === "ready")
       .map((document) => document.id);
     const scopedDocumentIds = requestedIds.size > 0
       ? ownedIds.filter((documentId) => requestedIds.has(documentId))
@@ -199,11 +197,11 @@ export class DocumentService {
     );
   }
 
-  private async processDocument(id: string, extractedText: string): Promise<DocumentRecord> {
-    const document = this.getDocument(id);
+  private async processDocument(id: string, organizationId: string, extractedText: string): Promise<DocumentRecord> {
+    const document = await this.getDocument(id, organizationId);
     const startedAt = new Date().toISOString();
 
-    this.repository.update(id, {
+    await this.repository.update(id, organizationId, {
       status: "processing",
       extractedText,
       characterCount: extractedText.length,
@@ -251,7 +249,7 @@ export class DocumentService {
         }))
       );
 
-      return this.updateOrThrow(id, {
+      return this.updateOrThrow(id, organizationId, {
         status: "ready",
         chunks,
         chunkCount: chunks.length,
@@ -265,7 +263,7 @@ export class DocumentService {
       const failedAt = new Date().toISOString();
       const message = error instanceof Error ? error.message : "Document processing failed.";
 
-      return this.updateOrThrow(id, {
+      return this.updateOrThrow(id, organizationId, {
         status: "failed",
         chunks: [],
         chunkCount: 0,
@@ -278,9 +276,9 @@ export class DocumentService {
     }
   }
 
-  private markFailed(id: string, errorMessage: string) {
+  private markFailed(id: string, organizationId: string, errorMessage: string) {
     const now = new Date().toISOString();
-    return this.updateOrThrow(id, {
+    return this.updateOrThrow(id, organizationId, {
       status: "failed",
       errorMessage,
       updatedAt: now,
@@ -288,8 +286,8 @@ export class DocumentService {
     });
   }
 
-  private updateOrThrow(id: string, patch: Partial<DocumentRecord>) {
-    const document = this.repository.update(id, patch);
+  private async updateOrThrow(id: string, organizationId: string, patch: Partial<DocumentRecord>) {
+    const document = await this.repository.update(id, organizationId, patch);
     if (!document) {
       throw new AppError("Document not found.", HttpStatus.NOT_FOUND);
     }
@@ -298,7 +296,7 @@ export class DocumentService {
   }
 
   private async restorePersistedVectors() {
-    const documents = this.repository.list().filter((document) => document.status === "ready");
+    const documents = (await this.repository.listAll()).filter((document) => document.status === "ready");
     const points = documents.flatMap((document) =>
       document.chunks.map((chunk) => ({
         id: chunk.id,

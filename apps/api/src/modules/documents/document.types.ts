@@ -12,7 +12,8 @@ export type DocumentChunk = EmbeddedChunk & {
 
 export type DocumentRecord = {
   id: string;
-  ownerId: string;
+  organizationId: string;
+  createdById: string | null;
   filename: string;
   mimeType: string;
   sizeBytes: number;
@@ -30,8 +31,8 @@ export type DocumentRecord = {
   chunks: DocumentChunk[];
 };
 
-export type DocumentSummary = Omit<DocumentRecord, "ownerId" | "extractedText" | "chunks">;
-export type DocumentDetail = Omit<DocumentRecord, "ownerId" | "chunks">;
+export type DocumentSummary = Omit<DocumentRecord, "organizationId" | "createdById" | "extractedText" | "chunks">;
+export type DocumentDetail = Omit<DocumentRecord, "organizationId" | "createdById" | "chunks">;
 
 export type UploadDocumentResponse = {
   document: DocumentDetail;

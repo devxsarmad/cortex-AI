@@ -1,49 +1,29 @@
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-const USER_ID_STORAGE_KEY = "cortex:user-id";
-
-const createUserId = () => {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-};
-
-export const getCortexUserId = () => {
-  if (typeof window === "undefined") {
-    return "local-user";
-  }
-
-  const existingUserId = window.localStorage.getItem(USER_ID_STORAGE_KEY);
-  if (existingUserId) {
-    return existingUserId;
-  }
-
-  const nextUserId = createUserId();
-  window.localStorage.setItem(USER_ID_STORAGE_KEY, nextUserId);
-  return nextUserId;
-};
-
-export const resetCortexUserId = () => {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(USER_ID_STORAGE_KEY);
-};
-
-export const getCortexWorkspaceLabel = () => {
-  const userId = getCortexUserId();
-  return userId.startsWith("local-") ? userId.slice(0, 14) : userId.slice(0, 8);
-};
+let accessToken: string | null = null;
+export const setAccessToken = (token: string | null) => { accessToken = token; };
 
 export const createApiHeaders = (headers: HeadersInit = {}) => {
-  const apiKey = process.env.NEXT_PUBLIC_CORTEX_API_KEY;
   const nextHeaders = new Headers(headers);
-
-  if (apiKey) {
-    nextHeaders.set("x-cortex-api-key", apiKey);
-  }
-
-  nextHeaders.set("x-cortex-user-id", getCortexUserId());
-
+  const apiKey = process.env.NEXT_PUBLIC_CORTEX_API_KEY;
+  if (apiKey) nextHeaders.set("x-cortex-api-key", apiKey);
+  if (accessToken) nextHeaders.set("Authorization", `Bearer ${accessToken}`);
   return nextHeaders;
+};
+
+export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}) => {
+  const perform = () => fetch(input, { ...init, credentials: "include", headers: createApiHeaders(init.headers) });
+  let response = await perform();
+  if (response.status === 401 && !String(input).includes("/api/auth/")) {
+    const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, { method: "POST", credentials: "include" });
+    if (refreshResponse.ok) {
+      const session = await refreshResponse.json() as { accessToken: string };
+      setAccessToken(session.accessToken);
+      response = await perform();
+    } else {
+      setAccessToken(null);
+      window.dispatchEvent(new Event("cortex:unauthorized"));
+    }
+  }
+  return response;
 };

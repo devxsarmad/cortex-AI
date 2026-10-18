@@ -10,7 +10,7 @@ The core assistant workflow is implemented end to end.
 
 - Streaming chat with an OpenAI provider and a mock fallback.
 - Provider health detection when the web app loads.
-- Local workspaces separated by a browser-generated owner ID.
+- Account authentication with organization-scoped workspaces and role memberships.
 - Saved chat sessions that can be restored and deleted.
 - TXT, Markdown, JSON, CSV, and text-based PDF uploads up to 5 MB.
 - Text extraction, format-aware chunking, embeddings, and retryable document processing.
@@ -21,10 +21,8 @@ The core assistant workflow is implemented end to end.
 - Controlled calculator, current-time, and document-statistics tools.
 - Agent route, trace count, retrieval strategy, and query count shown in the UI.
 - Usage tracking, request logging, API-key authentication, rate limiting, validation, and security headers.
-- JSON-file persistence for documents and conversations during local development.
-- Docker services for the web app, API, Qdrant, and MongoDB.
-
-MongoDB is included as planned infrastructure but is not currently the active application repository. Local JSON files remain the source of truth for document metadata and conversations.
+- PostgreSQL/Prisma persistence for documents, conversations, and messages.
+- Docker services for the web app, API, Qdrant, and PostgreSQL.
 
 ## How It Works
 
@@ -50,7 +48,7 @@ Upload document
   -> Split text into chunks
   -> Generate OpenAI or mock embeddings
   -> Store vectors in memory or Qdrant
-  -> Persist document metadata locally
+  -> Persist document metadata in PostgreSQL
   -> Mark the source ready for retrieval
 ```
 
@@ -85,12 +83,12 @@ Question
 - LangGraph state-machine orchestration
 - Qdrant or in-memory vector storage
 - `pdf-parse` for text-based PDFs
-- JSON-file persistence
+- PostgreSQL and Prisma ORM
 
 ### Operational boundaries
 
-- Optional shared API key
-- Per-workspace request ownership
+- JWT access tokens and rotating, hashed refresh tokens
+- Organization-scoped authorization with OWNER, ADMIN, and MEMBER roles
 - Request IDs and request logging
 - Rate limiting
 - Security headers and environment-aware CORS
@@ -121,7 +119,8 @@ apps/
       modules/ops/            usage reporting
       infrastructure/llm/     OpenAI/mock LLM boundary
       infrastructure/vector-db/ in-memory/Qdrant boundary
-      infrastructure/storage/ local JSON persistence
+      infrastructure/database/ Prisma client boundary
+      infrastructure/storage/ legacy JSON import support
       shared/                 middleware, errors, constants, and request helpers
 
 packages/
@@ -151,17 +150,35 @@ packages/
    cp apps/web/.env.example apps/web/.env.local
    ```
 
-3. Add `OPENAI_API_KEY` to `apps/api/.env` if you want real OpenAI responses and embeddings. Leave it empty to use the local mock providers.
+3. Start PostgreSQL, apply the migration, and generate Prisma Client:
 
-4. Start both applications:
+   ```bash
+   docker compose up -d postgres
+   npm run prisma:generate --workspace @cortex/api
+   npm run prisma:deploy --workspace @cortex/api
+   ```
+
+4. Add `OPENAI_API_KEY` to `apps/api/.env` if you want real OpenAI responses and embeddings. Leave it empty to use the local mock providers.
+
+5. Start both applications:
 
    ```bash
    npm run dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000). The API runs at [http://localhost:4000](http://localhost:4000), and its health endpoint is [http://localhost:4000/health](http://localhost:4000/health).
+6. Open [http://localhost:3000](http://localhost:3000). The API runs at [http://localhost:4000](http://localhost:4000), and its health endpoint is [http://localhost:4000/health](http://localhost:4000/health).
 
 The header checks API health on page load and shows `OpenAI`, `Mock`, or `Not Connected` before the first message is sent.
+
+### Import existing JSON data once
+
+After applying the migration, import legacy `.cortex-data/documents.json` and `conversations.json` into one default organization:
+
+```bash
+IMPORT_DEFAULT_PASSWORD='choose-a-password' npm run data:import --workspace @cortex/api
+```
+
+Set `CORTEX_DATA_DIR` if the files are not under `apps/api/.cortex-data`. The importer is idempotent by document/conversation ID and creates (or reuses) the configured default owner account.
 
 > Do not run `npm run build` while a Next.js development server is active. Both commands write to `apps/web/.next`, and concurrent use can produce missing-chunk runtime errors.
 
@@ -183,7 +200,12 @@ The header checks API health on page load and shows `OpenAI`, `Mock`, or `Not Co
 | `RATE_LIMIT_MAX_REQUESTS` | `120` | Requests allowed per window |
 | `AI_INPUT_COST_PER_1K_TOKENS` | `0` | Optional input-cost estimate |
 | `AI_OUTPUT_COST_PER_1K_TOKENS` | `0` | Optional output-cost estimate |
-| `CORTEX_DATA_DIR` | `.cortex-data` | Local JSON persistence directory |
+| `CORTEX_DATA_DIR` | `.cortex-data` | Source directory for the one-time JSON import |
+| `DATABASE_URL` | local Cortex PostgreSQL URL | Prisma connection string |
+| `JWT_ACCESS_SECRET` | development-only value | Access-token signing secret; replace in production |
+| `JWT_ACCESS_TTL` | `15m` | Access-token lifetime |
+| `REFRESH_TOKEN_TTL_DAYS` | `30` | Refresh-token lifetime in days |
+| `AUTH_RATE_LIMIT_MAX_REQUESTS` | `10` | Auth attempts per rate-limit window |
 | `VECTOR_STORE_PROVIDER` | `memory` | `memory` or `qdrant` |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant HTTP endpoint |
 | `QDRANT_COLLECTION` | `cortex_chunks` | Qdrant collection name |
@@ -238,11 +260,15 @@ Tool selection is currently deterministic and keyword/rule based. The LLM receiv
 
 ## API Overview
 
-All `/api/*` endpoints are workspace-scoped through the `x-cortex-user-id` header. The web app creates and stores this ID automatically.
+All non-auth `/api/*` endpoints require a bearer access token and are scoped to the organization in its verified claims. Refresh tokens are sent only in an httpOnly cookie.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | API and provider health |
+| `POST` | `/api/auth/register` | Create a user, organization, and OWNER membership |
+| `POST` | `/api/auth/login` | Sign in and issue access/refresh tokens |
+| `POST` | `/api/auth/refresh` | Rotate the refresh token and issue a new access token |
+| `POST` | `/api/auth/logout` | Revoke the refresh token and clear its cookie |
 | `POST` | `/api/chat/stream` | Stream an agent response over SSE |
 | `GET` | `/api/documents` | List workspace documents |
 | `POST` | `/api/documents` | Upload and process a document |
@@ -269,12 +295,13 @@ npm run lint         # lint every workspace
 npm run build        # production build for API and web
 npm run docker:up    # start the Docker services
 npm run docker:down  # stop the Docker services
+npm run prisma:generate --workspace @cortex/api # generate Prisma Client
+npm run prisma:deploy --workspace @cortex/api   # apply committed migrations
+npm run data:import --workspace @cortex/api      # one-time legacy JSON import
 ```
 
 ## Current Limitations
 
-- Local workspace identity is browser-generated; there is no account authentication yet.
-- Documents and conversations use local JSON persistence rather than MongoDB.
 - In-memory vector search is single-process; use Qdrant for durable vector storage.
 - Tool planning is rule based rather than model-selected.
 - PDF OCR, background queues, automated evaluation, and a production deployment guide are not implemented yet.

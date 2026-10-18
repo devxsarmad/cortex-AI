@@ -2,7 +2,8 @@ import type { ChatMessage } from "../chat/chat.types.js";
 
 export type ConversationRecord = {
   id: string;
-  ownerId: string;
+  organizationId: string;
+  createdById: string | null;
   title: string;
   messages: ChatMessage[];
   documentIds: string[];
@@ -11,8 +12,8 @@ export type ConversationRecord = {
   updatedAt: string;
 };
 
-export type ConversationSummary = Omit<ConversationRecord, "ownerId" | "messages">;
-export type ConversationDetail = Omit<ConversationRecord, "ownerId">;
+export type ConversationSummary = Omit<ConversationRecord, "organizationId" | "createdById" | "messages">;
+export type ConversationDetail = Omit<ConversationRecord, "organizationId" | "createdById">;
 
 export type CreateConversationInput = {
   title?: string;

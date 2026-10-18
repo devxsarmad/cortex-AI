@@ -1,12 +1,12 @@
 import type { RequestHandler } from "express";
-import { getRequestOwnerId } from "../../shared/request/request-owner.js";
+import { getRequestAuth } from "../../shared/request/request-auth.js";
 import { chatService } from "./chat.service.js";
 import { streamChatSchema } from "./chat.validation.js";
 
 export const streamChat: RequestHandler = async (request, response) => {
   const input = {
     ...streamChatSchema.parse(request.body),
-    ownerId: getRequestOwnerId(request)
+    ownerId: getRequestAuth(request).organizationId
   };
 
   response.setHeader("Content-Type", "text/event-stream; charset=utf-8");

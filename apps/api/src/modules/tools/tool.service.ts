@@ -120,7 +120,7 @@ export class ToolService {
         name: call.name,
         label: "Document stats",
         input: call.input,
-        output: getDocumentStats(ownerId),
+        output: await getDocumentStats(ownerId),
         status: "success"
       };
     } catch (error) {

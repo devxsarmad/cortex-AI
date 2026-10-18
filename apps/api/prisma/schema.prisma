@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MembershipRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Organization {
+  id            String         @id @default(uuid())
+  name          String
+  memberships   Membership[]
+  documents     Document[]
+  conversations Conversation[]
+  messages      Message[]
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  passwordHash  String
+  memberships   Membership[]
+  documents     Document[]     @relation("DocumentCreator")
+  conversations Conversation[] @relation("ConversationCreator")
+  messages      Message[]      @relation("MessageCreator")
+  refreshTokens RefreshToken[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Membership {
+  id             String         @id @default(uuid())
+  organizationId String
+  userId         String
+  role           MembershipRole @default(MEMBER)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Document {
+  id                  String        @id @default(uuid())
+  organizationId      String
+  createdById         String?
+  filename            String
+  mimeType            String
+  sizeBytes           Int
+  status              String
+  extractedText       String        @default("")
+  characterCount      Int           @default(0)
+  chunkCount          Int           @default(0)
+  embeddingProvider   String?
+  vectorStoreProvider String?
+  errorMessage        String?
+  processingAttempts  Int           @default(0)
+  chunks              Json          @default("[]")
+  processedAt         DateTime?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  organization        Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy           User?         @relation("DocumentCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([createdById])
+}
+
+model Conversation {
+  id             String        @id @default(uuid())
+  organizationId String
+  createdById    String?
+  title          String
+  documentIds    String[]      @default([])
+  messageCount   Int           @default(0)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy      User?         @relation("ConversationCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  messages       Message[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId])
+  @@index([createdById])
+}
+
+model Message {
+  id             String        @id
+  organizationId String
+  conversationId String
+  createdById    String?
+  role           String
+  content        String
+  sources        Json?
+  tools          Json?
+  position       Int
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversation   Conversation  @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  createdBy      User?         @relation("MessageCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([conversationId, position])
+  @@index([organizationId])
+  @@index([conversationId])
+  @@index([createdById])
+}
+
+model RefreshToken {
+  id             String       @id @default(uuid())
+  organizationId String
+  userId         String
+  tokenHash      String       @unique
+  expiresAt      DateTime
+  revokedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+}
