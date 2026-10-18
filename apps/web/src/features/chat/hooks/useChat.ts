@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { streamChat } from "@/services/chat.service";
 import { createConversation, saveConversationMessages } from "@/services/conversation.service";
+import { getApiHealth } from "@/services/health.service";
 import type { ChatMessage, ChatSource, ChatToolResult } from "../types/chat.types";
 
 const starterMessages: ChatMessage[] = [
@@ -31,11 +32,24 @@ export const useChat = ({
 }: UseChatOptions) => {
   const [messages, setMessages] = useState<ChatMessage[]>(starterMessages);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [provider, setProvider] = useState("not connected");
+  const [provider, setProvider] = useState("checking");
   const [agentRoute, setAgentRoute] = useState("idle");
   const [agentTraceCount, setAgentTraceCount] = useState(0);
   const [retrievalStrategy, setRetrievalStrategy] = useState("none");
   const [retrievalQueryCount, setRetrievalQueryCount] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    getApiHealth(controller.signal)
+      .then((health) => setProvider(health.providers.llm))
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        setProvider("not connected");
+      });
+
+    return () => controller.abort();
+  }, []);
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();

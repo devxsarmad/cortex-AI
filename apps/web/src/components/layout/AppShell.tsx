@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { getCortexWorkspaceLabel, resetCortexUserId } from "@/services/api-client";
 import type { ConversationSummary } from "@/features/chat/types/conversation.types";
@@ -21,6 +21,12 @@ type AppShellProps = {
   children: ReactNode;
 };
 
+const formatProvider = (provider: string) => {
+  if (provider === "openai") return "OpenAI";
+  if (provider === "checking") return "Checking connection...";
+  return provider;
+};
+
 export function AppShell({
   provider,
   agentRoute,
@@ -38,7 +44,12 @@ export function AppShell({
   onDeleteConversation,
   children
 }: AppShellProps) {
-  const workspaceLabel = getCortexWorkspaceLabel();
+  const [workspaceLabel, setWorkspaceLabel] = useState("local-user");
+  const isProviderConnected = provider !== "not connected" && provider !== "checking";
+
+  useEffect(() => {
+    setWorkspaceLabel(getCortexWorkspaceLabel());
+  }, []);
 
   return (
     <main className="min-h-screen bg-[#f5f7f7] text-ink">
@@ -55,8 +66,17 @@ export function AppShell({
           </div>
           <div className="flex flex-col gap-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 shadow-sm sm:items-end">
             <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" aria-hidden="true" />
-              <span className="capitalize">{provider}</span>
+              <span
+                className={`h-2.5 w-2.5 rounded-full ${
+                  provider === "checking"
+                    ? "bg-amber-400"
+                    : isProviderConnected
+                      ? "bg-emerald-500"
+                      : "bg-red-500"
+                }`}
+                aria-hidden="true"
+              />
+              <span className="capitalize">{formatProvider(provider)}</span>
             </div>
             <span className="text-xs capitalize text-slate-500">
               Route {agentRoute.replaceAll("_", " ")} | {agentTraceCount} steps
