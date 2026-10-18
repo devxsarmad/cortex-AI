@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { streamChat } from "@/services/chat.service";
 import { createConversation, saveConversationMessages } from "@/services/conversation.service";
 import { getApiHealth } from "@/services/health.service";
 import type { ChatMessage, ChatSource, ChatToolResult } from "../types/chat.types";
+import { conversationKeys } from "./useConversations";
 
 const starterMessages: ChatMessage[] = [
   {
@@ -30,6 +32,13 @@ export const useChat = ({
   onConversationCreated,
   onConversationSaved
 }: UseChatOptions) => {
+  const queryClient = useQueryClient();
+  const createConversationMutation = useMutation({ mutationFn: createConversation });
+  const saveConversationMutation = useMutation({
+    mutationFn: (input: { conversationId: string; messages: ChatMessage[]; documentIds: string[] }) =>
+      saveConversationMessages(input.conversationId, input.messages, input.documentIds),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: conversationKeys.all })
+  });
   const [messages, setMessages] = useState<ChatMessage[]>(starterMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [provider, setProvider] = useState("checking");
@@ -76,7 +85,7 @@ export const useChat = ({
 
     try {
       if (!activeConversationId) {
-        const conversation = await createConversation();
+        const conversation = await createConversationMutation.mutateAsync();
         activeConversationId = conversation.id;
         onConversationCreated?.(conversation.id);
       }
@@ -127,7 +136,7 @@ export const useChat = ({
       );
 
       if (activeConversationId) {
-        await saveConversationMessages(activeConversationId, completedMessages, documentIds);
+        await saveConversationMutation.mutateAsync({ conversationId: activeConversationId, messages: completedMessages, documentIds });
         onConversationSaved?.();
       }
     } catch (error) {

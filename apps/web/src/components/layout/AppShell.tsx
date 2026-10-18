@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthProvider";
 import type { ConversationSummary } from "@/features/chat/types/conversation.types";
@@ -53,7 +54,7 @@ export function AppShell({
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <img src="/icon.svg" alt="Cortex AI logo" className="h-10 w-10 rounded-xl" />
+              <Image src="/icon.svg" alt="Cortex AI logo" width={40} height={40} className="rounded-xl" />
               <h1 className="text-2xl font-semibold tracking-normal sm:text-3xl">Cortex AI</h1>
             </div>
             <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">

@@ -1,6 +1,6 @@
 import type { ConversationDetail, ConversationSummary } from "@/features/chat/types/conversation.types";
 import type { ChatMessage } from "@/features/chat/types/chat.types";
-import { API_URL, authFetch } from "./api-client";
+import { apiRequest } from "./api-client";
 
 type ConversationPayload = {
   conversation: ConversationDetail;
@@ -22,7 +22,7 @@ const toPersistedMessages = (messages: ChatMessage[]) => {
 };
 
 export const createConversation = async () => {
-  const response = await authFetch(`${API_URL}/api/conversations`, {
+  const payload = await apiRequest<ConversationPayload>("/api/conversations", {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -30,33 +30,16 @@ export const createConversation = async () => {
     body: JSON.stringify({})
   });
 
-  if (!response.ok) {
-    throw new Error("Could not create chat session.");
-  }
-
-  const payload = (await response.json()) as ConversationPayload;
   return payload.conversation;
 };
 
 export const listConversations = async () => {
-  const response = await authFetch(`${API_URL}/api/conversations`);
-
-  if (!response.ok) {
-    throw new Error("Could not load chat sessions.");
-  }
-
-  const payload = (await response.json()) as ListConversationsPayload;
+  const payload = await apiRequest<ListConversationsPayload>("/api/conversations");
   return payload.conversations;
 };
 
 export const getConversation = async (conversationId: string) => {
-  const response = await authFetch(`${API_URL}/api/conversations/${conversationId}`);
-
-  if (!response.ok) {
-    throw new Error("Could not restore chat session.");
-  }
-
-  const payload = (await response.json()) as ConversationPayload;
+  const payload = await apiRequest<ConversationPayload>(`/api/conversations/${conversationId}`);
   return payload.conversation;
 };
 
@@ -65,7 +48,7 @@ export const saveConversationMessages = async (
   messages: ChatMessage[],
   documentIds: string[]
 ) => {
-  const response = await authFetch(`${API_URL}/api/conversations/${conversationId}/messages`, {
+  const payload = await apiRequest<ConversationPayload>(`/api/conversations/${conversationId}/messages`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"
@@ -76,21 +59,10 @@ export const saveConversationMessages = async (
     })
   });
 
-  if (!response.ok) {
-    throw new Error("Could not save chat session.");
-  }
-
-  const payload = (await response.json()) as ConversationPayload;
   return payload.conversation;
 };
 
 export const deleteConversation = async (conversationId: string) => {
-  const response = await authFetch(`${API_URL}/api/conversations/${conversationId}`, { method: "DELETE" });
-
-  if (!response.ok) {
-    throw new Error("Could not delete chat session.");
-  }
-
-  const payload = (await response.json()) as DeleteConversationPayload;
+  const payload = await apiRequest<DeleteConversationPayload>(`/api/conversations/${conversationId}`, { method: "DELETE" });
   return payload.conversationId;
 };

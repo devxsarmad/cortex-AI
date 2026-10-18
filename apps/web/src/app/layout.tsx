@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/features/auth/AuthProvider";
+import { AppProviders } from "@/providers/AppProviders";
 
 export const metadata: Metadata = {
   title: "Cortex AI",
@@ -23,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body><AuthProvider>{children}</AuthProvider></body>
+      <body><AppProviders>{children}</AppProviders></body>
     </html>
   );
 }

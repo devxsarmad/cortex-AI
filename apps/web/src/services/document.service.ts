@@ -3,7 +3,7 @@ import type {
   DocumentDetail,
   DocumentSummary
 } from "@/features/documents/types/document.types";
-import { API_URL, authFetch } from "./api-client";
+import { apiRequest } from "./api-client";
 
 type UploadDocumentResponse = {
   document: DocumentDetail;
@@ -25,62 +25,30 @@ export const uploadDocument = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await authFetch(`${API_URL}/api/documents`, {
+  const payload = await apiRequest<UploadDocumentResponse>("/api/documents", {
     method: "POST",
     body: formData
   });
 
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error ?? "Document upload failed.");
-  }
-
-  const payload = (await response.json()) as UploadDocumentResponse;
   return payload.document;
 };
 
 export const listDocuments = async () => {
-  const response = await authFetch(`${API_URL}/api/documents`);
-
-  if (!response.ok) {
-    throw new Error("Could not load documents.");
-  }
-
-  const payload = (await response.json()) as ListDocumentsResponse;
+  const payload = await apiRequest<ListDocumentsResponse>("/api/documents");
   return payload.documents;
 };
 
 export const listDocumentChunks = async (documentId: string) => {
-  const response = await authFetch(`${API_URL}/api/documents/${documentId}/chunks`);
-
-  if (!response.ok) {
-    throw new Error("Could not load document chunks.");
-  }
-
-  const payload = (await response.json()) as ListDocumentChunksResponse;
+  const payload = await apiRequest<ListDocumentChunksResponse>(`/api/documents/${documentId}/chunks`);
   return payload.chunks;
 };
 
 export const retryDocument = async (documentId: string) => {
-  const response = await authFetch(`${API_URL}/api/documents/${documentId}/retry`, { method: "POST" });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error ?? "Could not retry document processing.");
-  }
-
-  const payload = (await response.json()) as UploadDocumentResponse;
+  const payload = await apiRequest<UploadDocumentResponse>(`/api/documents/${documentId}/retry`, { method: "POST" });
   return payload.document;
 };
 
 export const deleteDocument = async (documentId: string) => {
-  const response = await authFetch(`${API_URL}/api/documents/${documentId}`, { method: "DELETE" });
-
-  if (!response.ok) {
-    const payload = await response.json().catch(() => null);
-    throw new Error(payload?.error ?? "Could not remove document.");
-  }
-
-  const payload = (await response.json()) as DeleteDocumentResponse;
+  const payload = await apiRequest<DeleteDocumentResponse>(`/api/documents/${documentId}`, { method: "DELETE" });
   return payload.documentId;
 };

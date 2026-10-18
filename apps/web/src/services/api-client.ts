@@ -3,6 +3,13 @@ export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000
 let accessToken: string | null = null;
 export const setAccessToken = (token: string | null) => { accessToken = token; };
 
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number, readonly details?: unknown) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 export const createApiHeaders = (headers: HeadersInit = {}) => {
   const nextHeaders = new Headers(headers);
   const apiKey = process.env.NEXT_PUBLIC_CORTEX_API_KEY;
@@ -26,4 +33,14 @@ export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}
     }
   }
   return response;
+};
+
+export const apiRequest = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
+  const response = await authFetch(`${API_URL}${path}`, init);
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null) as { error?: string; details?: unknown } | null;
+    throw new ApiError(payload?.error ?? "The request could not be completed.", response.status, payload?.details);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
 };

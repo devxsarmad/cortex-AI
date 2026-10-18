@@ -1,14 +1,9 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  deleteDocument,
-  listDocuments,
-  retryDocument,
-  uploadDocument
-} from "@/services/document.service";
 import type { DocumentSummary } from "../types/document.types";
+import { useDocuments } from "../hooks/useDocuments";
 
 const formatBytes = (bytes: number) => {
   if (bytes < 1024) return `${bytes} B`;
@@ -47,13 +42,10 @@ type DocumentPanelProps = {
 
 export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange }: DocumentPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [documents, setDocuments] = useState<DocumentSummary[]>([]);
   const [stagedFile, setStagedFile] = useState<File | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const [retryingDocumentId, setRetryingDocumentId] = useState<string | null>(null);
-  const [deletingDocumentId, setDeletingDocumentId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { documentsQuery, uploadMutation, retryMutation, deleteMutation } = useDocuments();
+  const documents = useMemo(() => documentsQuery.data ?? [], [documentsQuery.data]);
+  const error = uploadMutation.error ?? retryMutation.error ?? deleteMutation.error ?? documentsQuery.error;
 
   const readyCount = useMemo(
     () => documents.filter((document) => document.status === "ready").length,
@@ -65,29 +57,12 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
     [documents, selectedDocumentIds]
   );
 
-  const refreshDocuments = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const nextDocuments = await listDocuments();
-      const readyIds = new Set(
-        nextDocuments.filter((document) => document.status === "ready").map((document) => document.id)
-      );
-      setDocuments(nextDocuments);
-      const nextSelectedDocumentIds = selectedDocumentIds.filter((documentId) => readyIds.has(documentId));
-      if (!areSameDocumentIds(selectedDocumentIds, nextSelectedDocumentIds)) {
-        onSelectedDocumentIdsChange(nextSelectedDocumentIds);
-      }
-    } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Could not load documents.");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [onSelectedDocumentIdsChange, selectedDocumentIds]);
-
   useEffect(() => {
-    void refreshDocuments();
-  }, [refreshDocuments]);
+    if (!documentsQuery.data) return;
+    const readyIds = new Set(documents.filter((document) => document.status === "ready").map((document) => document.id));
+    const nextIds = selectedDocumentIds.filter((documentId) => readyIds.has(documentId));
+    if (!areSameDocumentIds(selectedDocumentIds, nextIds)) onSelectedDocumentIdsChange(nextIds);
+  }, [documents, documentsQuery.data, onSelectedDocumentIdsChange, selectedDocumentIds]);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -105,49 +80,31 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
     if (!stagedFile) return;
 
     try {
-      setIsUploading(true);
-      setError(null);
-      const document = await uploadDocument(stagedFile);
-      setDocuments((current) => [document, ...current.filter((item) => item.id !== document.id)]);
+      uploadMutation.reset();
+      const document = await uploadMutation.mutateAsync(stagedFile);
       if (document.status === "ready") {
         onSelectedDocumentIdsChange([...selectedDocumentIds, document.id]);
       }
       handleClearStagedFile();
-    } catch (uploadError) {
-      setError(uploadError instanceof Error ? uploadError.message : "Document upload failed.");
-    } finally {
-      setIsUploading(false);
-    }
+    } catch { /* Mutation state renders the API error. */ }
   };
 
   const handleRetry = async (documentId: string) => {
     try {
-      setRetryingDocumentId(documentId);
-      setError(null);
-      const document = await retryDocument(documentId);
-      setDocuments((current) => current.map((item) => (item.id === document.id ? document : item)));
+      retryMutation.reset();
+      const document = await retryMutation.mutateAsync(documentId);
       if (document.status === "ready" && !selectedDocumentIds.includes(document.id)) {
         onSelectedDocumentIdsChange([...selectedDocumentIds, document.id]);
       }
-    } catch (retryError) {
-      setError(retryError instanceof Error ? retryError.message : "Document retry failed.");
-    } finally {
-      setRetryingDocumentId(null);
-    }
+    } catch { /* Mutation state renders the API error. */ }
   };
 
   const handleDelete = async (documentId: string) => {
     try {
-      setDeletingDocumentId(documentId);
-      setError(null);
-      const deletedDocumentId = await deleteDocument(documentId);
-      setDocuments((current) => current.filter((document) => document.id !== deletedDocumentId));
+      deleteMutation.reset();
+      const deletedDocumentId = await deleteMutation.mutateAsync(documentId);
       onSelectedDocumentIdsChange(selectedDocumentIds.filter((item) => item !== deletedDocumentId));
-    } catch (deleteError) {
-      setError(deleteError instanceof Error ? deleteError.message : "Could not remove document.");
-    } finally {
-      setDeletingDocumentId(null);
-    }
+    } catch { /* Mutation state renders the API error. */ }
   };
 
   return (
@@ -171,19 +128,19 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
           <Button
             type="button"
             variant="secondary"
-            disabled={isUploading}
+            disabled={uploadMutation.isPending}
             onClick={() => inputRef.current?.click()}
           >
             Choose file
           </Button>
           <Button
             type="button"
-            disabled={!stagedFile || isUploading}
+            disabled={!stagedFile || uploadMutation.isPending}
             onClick={() => void handleUpload()}
           >
-            {isUploading ? "Uploading" : "Upload"}
+            {uploadMutation.isPending ? "Uploading" : "Upload"}
           </Button>
-          <Button type="button" variant="ghost" disabled={isLoading} onClick={() => void refreshDocuments()}>
+          <Button type="button" variant="ghost" disabled={documentsQuery.isFetching} onClick={() => void documentsQuery.refetch()}>
             Refresh
           </Button>
         </div>
@@ -198,7 +155,7 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
           <Button
             type="button"
             variant="ghost"
-            disabled={isUploading}
+            disabled={uploadMutation.isPending}
             onClick={handleClearStagedFile}
           >
             Clear
@@ -208,16 +165,16 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
 
       {error && (
         <div className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
+          {error.message}
         </div>
       )}
 
       <div className="mt-4 grid gap-2">
-        {isLoading && <p className="text-sm text-slate-500">Loading documents...</p>}
-        {!isLoading && documents.length === 0 && (
+        {documentsQuery.isPending && <p className="text-sm text-slate-500">Loading documents...</p>}
+        {!documentsQuery.isPending && documents.length === 0 && (
           <p className="text-sm text-slate-500">Upload a TXT, Markdown, JSON, CSV, or PDF file.</p>
         )}
-        {!isLoading &&
+        {!documentsQuery.isPending &&
           documents.map((document) => (
             <article
               key={document.id}
@@ -254,19 +211,19 @@ export function DocumentPanel({ selectedDocumentIds, onSelectedDocumentIdsChange
                   <Button
                     type="button"
                     variant="ghost"
-                    disabled={retryingDocumentId === document.id}
+                    disabled={retryMutation.isPending && retryMutation.variables === document.id}
                     onClick={() => void handleRetry(document.id)}
                   >
-                    {retryingDocumentId === document.id ? "Retrying" : "Retry"}
+                    {retryMutation.isPending && retryMutation.variables === document.id ? "Retrying" : "Retry"}
                   </Button>
                 )}
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={deletingDocumentId === document.id}
+                  disabled={deleteMutation.isPending && deleteMutation.variables === document.id}
                   onClick={() => void handleDelete(document.id)}
                 >
-                  {deletingDocumentId === document.id ? "Removing" : "Remove"}
+                  {deleteMutation.isPending && deleteMutation.variables === document.id ? "Removing" : "Remove"}
                 </Button>
               </div>
             </article>
