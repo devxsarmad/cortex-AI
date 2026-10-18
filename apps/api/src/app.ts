@@ -19,7 +19,7 @@ export const createApp = () => {
 
   app.use(
     cors({
-      origin: true,
+      origin: env.nodeEnv === "production" ? env.clientOrigin : true,
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization", "x-cortex-api-key"]
     })

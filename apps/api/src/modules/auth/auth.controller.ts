@@ -5,8 +5,14 @@ import { authService } from "./auth.service.js";
 import { loginSchema, registerSchema } from "./auth.validation.js";
 
 export const REFRESH_COOKIE = "cortex_refresh";
+const refreshCookieOptions = {
+  httpOnly: true,
+  secure: env.nodeEnv === "production",
+  sameSite: env.nodeEnv === "production" ? "none" as const : "strict" as const,
+  path: "/api/auth"
+};
 const setRefreshCookie = (response: Response, token: string, expires: Date) => response.cookie(REFRESH_COOKIE, token, {
-  httpOnly: true, secure: env.nodeEnv === "production", sameSite: "strict", path: "/api/auth", expires
+  ...refreshCookieOptions, expires
 });
 
 export const register: RequestHandler = async (request, response) => {
@@ -29,6 +35,6 @@ export const refresh: RequestHandler = async (request, response) => {
 
 export const logout: RequestHandler = async (request, response) => {
   await authService.logout(request.cookies?.[REFRESH_COOKIE]);
-  response.clearCookie(REFRESH_COOKIE, { httpOnly: true, secure: env.nodeEnv === "production", sameSite: "strict", path: "/api/auth" });
+  response.clearCookie(REFRESH_COOKIE, refreshCookieOptions);
   response.status(204).end();
 };
