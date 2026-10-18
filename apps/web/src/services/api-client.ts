@@ -1,7 +1,24 @@
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_URL = configuredApiUrl.replace(/\/+$/, "");
 
 let accessToken: string | null = null;
+let refreshPromise: Promise<string | null> | null = null;
 export const setAccessToken = (token: string | null) => { accessToken = token; };
+
+const refreshAccessToken = () => {
+  if (!refreshPromise) {
+    refreshPromise = fetch(`${API_URL}/api/auth/refresh`, { method: "POST", credentials: "include" })
+      .then(async (response) => {
+        if (!response.ok) return null;
+        const session = await response.json() as { accessToken: string };
+        setAccessToken(session.accessToken);
+        return session.accessToken;
+      })
+      .catch(() => null)
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+};
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number, readonly details?: unknown) {
@@ -22,10 +39,8 @@ export const authFetch = async (input: RequestInfo | URL, init: RequestInit = {}
   const perform = () => fetch(input, { ...init, credentials: "include", headers: createApiHeaders(init.headers) });
   let response = await perform();
   if (response.status === 401 && !String(input).includes("/api/auth/")) {
-    const refreshResponse = await fetch(`${API_URL}/api/auth/refresh`, { method: "POST", credentials: "include" });
-    if (refreshResponse.ok) {
-      const session = await refreshResponse.json() as { accessToken: string };
-      setAccessToken(session.accessToken);
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
       response = await perform();
     } else {
       setAccessToken(null);

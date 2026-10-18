@@ -14,5 +14,5 @@ export function AppProviders({ children }: { children: ReactNode }) {
     }
   }));
 
-  return <QueryClientProvider client={queryClient}><AuthProvider><TooltipProvider><ToastProvider swipeDirection="right">{children}<ToastViewport/></ToastProvider></TooltipProvider></AuthProvider></QueryClientProvider>;
+  return <QueryClientProvider client={queryClient}><ToastProvider swipeDirection="right"><AuthProvider><TooltipProvider>{children}</TooltipProvider></AuthProvider><ToastViewport/></ToastProvider></QueryClientProvider>;
 }

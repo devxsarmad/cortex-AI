@@ -1,11 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { setAccessToken } from "@/services/api-client";
 import { authApi, type AuthSession, type AuthUser, type LoginInput, type RegisterInput } from "@/services/auth.service";
 import { CortexLoader } from "@/components/ui/cortex-loader";
+import { Toast } from "@/components/ui/toast";
 
 const sessionKey = ["auth", "session"] as const;
 type AuthContextValue = {
@@ -19,7 +20,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const isPublicAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const sessionQuery = useQuery({
     queryKey: sessionKey,
     queryFn: async () => {
@@ -27,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAccessToken(session.accessToken);
       return session;
     },
+    enabled: !isPublicAuthPage,
     retry: false,
     staleTime: Infinity
   });
@@ -52,20 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const session = sessionQuery.data;
     if (session) {
       setAccessToken(session.accessToken);
-      const path = window.location.pathname;
-      if (path.startsWith("/login") || path.startsWith("/register")) router.replace("/");
+      if (isPublicAuthPage) router.replace("/");
     }
     if (sessionQuery.isError) {
       setAccessToken(null);
-      const path = window.location.pathname;
-      if (!path.startsWith("/login") && !path.startsWith("/register")) router.replace("/login");
+      if (!isPublicAuthPage) router.replace("/login");
     }
-  }, [router, sessionQuery.data, sessionQuery.isError]);
+  }, [isPublicAuthPage, router, sessionQuery.data, sessionQuery.isError]);
 
   useEffect(() => {
     const unauthorized = () => {
       setAccessToken(null);
       queryClient.setQueryData(sessionKey, null);
+      setSessionExpired(true);
       router.replace("/login");
     };
     window.addEventListener("cortex:unauthorized", unauthorized);
@@ -74,11 +78,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={{
     user: sessionQuery.data?.user ?? null,
-    loading: sessionQuery.isPending,
+    loading: !isPublicAuthPage && sessionQuery.isPending,
     login: async (input) => { await loginMutation.mutateAsync(input); },
     register: async (input) => { await registerMutation.mutateAsync(input); },
     logout: async () => { await logoutMutation.mutateAsync(); }
-  }}>{children}</AuthContext.Provider>;
+  }}>{children}<Toast open={sessionExpired} onOpenChange={setSessionExpired} tone="danger" title="Your session has expired" description="Sign in again to continue securely." /></AuthContext.Provider>;
 }
 
 export const useAuth = () => {

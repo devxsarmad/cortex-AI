@@ -4,6 +4,7 @@ docs
 dist
 .env
 .env.local
+.env.production
 .DS_Store
 coverage
 .cortex-data
