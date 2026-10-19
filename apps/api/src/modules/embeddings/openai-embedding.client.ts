@@ -8,7 +8,11 @@ export class OpenAiEmbeddingClient implements EmbeddingClient {
   private readonly client: OpenAI;
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({
+      apiKey,
+      timeout: env.openaiTimeoutMs,
+      maxRetries: env.openaiMaxRetries
+    });
   }
 
   async embedTexts(texts: string[]) {

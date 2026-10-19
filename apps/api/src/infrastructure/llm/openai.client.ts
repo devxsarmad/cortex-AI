@@ -9,7 +9,11 @@ export class OpenAiClient implements LlmClient {
   private readonly client: OpenAI;
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    this.client = new OpenAI({
+      apiKey,
+      timeout: env.openaiTimeoutMs,
+      maxRetries: env.openaiMaxRetries
+    });
   }
 
   async *streamCompletion(input: StreamCompletionInput): AsyncIterable<string> {

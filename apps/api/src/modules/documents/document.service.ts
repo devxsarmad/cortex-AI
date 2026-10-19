@@ -19,6 +19,28 @@ const textMimeTypes = new Set([
 
 const supportedExtensions = new Set([".txt", ".md", ".markdown", ".json", ".csv", ".pdf"]);
 
+const errorDetails = (error: unknown): Record<string, unknown> => {
+  if (!(error instanceof Error)) return { value: String(error) };
+
+  const providerError = error as Error & {
+    status?: number;
+    code?: string;
+    type?: string;
+    requestID?: string;
+    cause?: unknown;
+  };
+
+  return {
+    name: providerError.name,
+    message: providerError.message,
+    status: providerError.status,
+    code: providerError.code,
+    type: providerError.type,
+    requestId: providerError.requestID,
+    ...(providerError.cause ? { cause: errorDetails(providerError.cause) } : {})
+  };
+};
+
 const isTextDocument = (file: Express.Multer.File) => {
   const extension = extname(file.originalname).toLowerCase();
   return textMimeTypes.has(file.mimetype) || [".txt", ".md", ".markdown", ".json", ".csv"].includes(extension);
@@ -264,6 +286,15 @@ export class DocumentService {
     } catch (error) {
       const failedAt = new Date().toISOString();
       const message = error instanceof Error ? error.message : "Document processing failed.";
+
+      console.error("Document processing failed.", {
+        documentId: id,
+        organizationId,
+        filename: document.filename,
+        stage: "embedding-or-vector-indexing",
+        provider: embeddingService.provider,
+        error: errorDetails(error)
+      });
 
       return this.updateOrThrow(id, organizationId, {
         status: "failed",

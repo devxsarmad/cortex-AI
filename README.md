@@ -194,6 +194,8 @@ Set `CORTEX_DATA_DIR` if the files are not under `apps/api/.cortex-data`. The im
 | `OPENAI_API_KEY` | empty | Enables OpenAI chat and embeddings; empty uses mock providers |
 | `OPENAI_MODEL` | `gpt-4.1-mini` | Chat model |
 | `OPENAI_EMBEDDING_MODEL` | `text-embedding-3-small` | Embedding model |
+| `OPENAI_TIMEOUT_MS` | `30000` | Timeout for each OpenAI request attempt |
+| `OPENAI_MAX_RETRIES` | `5` | Retries for transient OpenAI connection and server errors |
 | `AI_TEMPERATURE` | `0.3` | Chat generation temperature |
 | `CORTEX_API_KEY` | empty | Optional API key required through `x-cortex-api-key` |
 | `RATE_LIMIT_WINDOW_MS` | `60000` | Rate-limit window |
