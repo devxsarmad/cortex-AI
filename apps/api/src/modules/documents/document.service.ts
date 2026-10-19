@@ -19,8 +19,12 @@ const textMimeTypes = new Set([
 
 const supportedExtensions = new Set([".txt", ".md", ".markdown", ".json", ".csv", ".pdf"]);
 
+const redactDiagnostic = (value: string) => value
+  .replace(/Bearer\s+[^\s]+/gi, "Bearer [REDACTED]")
+  .replace(/sk-[A-Za-z0-9_-]+/g, "[REDACTED_OPENAI_KEY]");
+
 const errorDetails = (error: unknown): Record<string, unknown> => {
-  if (!(error instanceof Error)) return { value: String(error) };
+  if (!(error instanceof Error)) return { value: redactDiagnostic(String(error)) };
 
   const providerError = error as Error & {
     status?: number;
@@ -32,7 +36,7 @@ const errorDetails = (error: unknown): Record<string, unknown> => {
 
   return {
     name: providerError.name,
-    message: providerError.message,
+    message: redactDiagnostic(providerError.message),
     status: providerError.status,
     code: providerError.code,
     type: providerError.type,

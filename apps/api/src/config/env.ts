@@ -9,11 +9,16 @@ const optionalNumber = (value: string | undefined, fallback: number) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const singleLineSecret = z.string().trim().refine(
+  (value) => !/[\r\n]/.test(value),
+  "OPENAI_API_KEY must contain only the key, without additional environment-variable lines."
+);
+
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   PORT: z.string().optional(),
   CLIENT_ORIGIN: z.string().url().default("http://localhost:3001"),
-  OPENAI_API_KEY: z.string().optional(),
+  OPENAI_API_KEY: singleLineSecret.optional(),
   OPENAI_MODEL: z.string().default("gpt-4.1-mini"),
   OPENAI_EMBEDDING_MODEL: z.string().default("text-embedding-3-small"),
   OPENAI_TIMEOUT_MS: z.string().optional(),
