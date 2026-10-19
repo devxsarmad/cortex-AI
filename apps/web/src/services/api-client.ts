@@ -1,5 +1,7 @@
-const configuredApiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
-export const API_URL = configuredApiUrl.replace(/\/+$/, "");
+// Browser requests go through the Next.js origin. Besides avoiding CORS, this
+// keeps the httpOnly refresh cookie first-party when the web and API services
+// are deployed on different hostnames.
+export const API_URL = "/backend";
 
 let accessToken: string | null = null;
 let refreshPromise: Promise<string | null> | null = null;

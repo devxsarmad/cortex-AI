@@ -9,7 +9,10 @@ const refreshCookieOptions = {
   httpOnly: true,
   secure: env.nodeEnv === "production",
   sameSite: env.nodeEnv === "production" ? "none" as const : "strict" as const,
-  path: "/api/auth"
+  // The production web app proxies API calls under /backend. A root path lets
+  // the browser send this cookie through that same-origin proxy as well as to
+  // the API directly in local development.
+  path: "/"
 };
 const setRefreshCookie = (response: Response, token: string, expires: Date) => response.cookie(REFRESH_COOKIE, token, {
   ...refreshCookieOptions, expires

@@ -214,7 +214,8 @@ Set `CORTEX_DATA_DIR` if the files are not under `apps/api/.cortex-data`. The im
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `NEXT_PUBLIC_API_URL` | `http://localhost:4000` | Browser-facing API URL |
+| `API_PROXY_TARGET` | `NEXT_PUBLIC_API_URL` or `http://localhost:4000` | API URL used by the Next.js same-origin proxy |
+| `NEXT_PUBLIC_API_URL` | `http://localhost:4000` | Legacy/fallback API proxy target |
 | `NEXT_PUBLIC_CORTEX_API_KEY` | empty | Must match `CORTEX_API_KEY` when API-key auth is enabled |
 
 ## Vector Storage

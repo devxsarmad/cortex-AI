@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { streamChat } from "@/services/chat.service";
 import { createConversation, saveConversationMessages } from "@/services/conversation.service";
-import { getApiHealth } from "@/services/health.service";
 import type { ChatMessage, ChatSource, ChatToolResult } from "../types/chat.types";
 import { conversationKeys } from "./useConversations";
 
@@ -41,25 +40,12 @@ export const useChat = ({
   });
   const [messages, setMessages] = useState<ChatMessage[]>(starterMessages);
   const [isStreaming, setIsStreaming] = useState(false);
-  const [provider, setProvider] = useState("checking");
+  const [provider, setProvider] = useState("openai");
   const [agentRoute, setAgentRoute] = useState("idle");
   const [agentTraceCount, setAgentTraceCount] = useState(0);
   const [retrievalStrategy, setRetrievalStrategy] = useState("none");
   const [retrievalQueryCount, setRetrievalQueryCount] = useState(0);
   const streamController = useRef<AbortController | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-
-    getApiHealth(controller.signal)
-      .then((health) => setProvider(health.providers.llm))
-      .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === "AbortError") return;
-        setProvider("not connected");
-      });
-
-    return () => controller.abort();
-  }, []);
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();

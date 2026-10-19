@@ -3,14 +3,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, CircleHelp, FileText, History, LogOut, Menu, MessageSquareText, PanelLeftClose, Settings, UserRound } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, type BadgeTone } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownItem, DropdownMenu, DropdownSeparator } from "@/components/ui/dropdown-menu";
 import { Tooltip } from "@/components/ui/tooltip";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { getApiHealth } from "@/services/health.service";
 import { cn } from "@/utils/cn";
 
 const navItems = [{ href: "/", label: "Chat", icon: MessageSquareText }, { href: "/documents", label: "Documents", icon: FileText }, { href: "/history", label: "History", icon: History }, { href: "/settings", label: "Settings", icon: Settings }];
@@ -18,9 +17,8 @@ const titleFor = (path: string) => path === "/" ? "Chat" : path.startsWith("/doc
 
 export function AppShell({ children, provider }: { children: ReactNode; provider?: string }) {
   const { user, logout } = useAuth(); const pathname = usePathname(); const router = useRouter();
-  const [collapsed, setCollapsed] = useState(false); const [mobileOpen, setMobileOpen] = useState(false); const [detectedProvider, setDetectedProvider] = useState("checking");
-  useEffect(() => { if (provider) return; const controller = new AbortController(); getApiHealth(controller.signal).then((health) => setDetectedProvider(health.providers.llm)).catch(() => setDetectedProvider("not connected")); return () => controller.abort(); }, [provider]);
-  const activeProvider = provider ?? detectedProvider;
+  const [collapsed, setCollapsed] = useState(false); const [mobileOpen, setMobileOpen] = useState(false);
+  const activeProvider = provider ?? "openai";
   const providerLabel = activeProvider === "openai" ? "OpenAI" : activeProvider === "mock" ? "Mock" : activeProvider === "checking" ? "Checking" : "Not connected";
   const providerTone: BadgeTone = activeProvider === "checking" ? "warning" : activeProvider === "not connected" ? "danger" : "success";
   const sidebar = <><div className="flex h-14 items-center border-b border-border px-3"><div className="flex min-w-0 flex-1 items-center gap-2.5"><Image src="/icon.svg" alt="Cortex AI" width={32} height={32} className="rounded-control"/>{!collapsed && <div className="min-w-0"><p className="truncate text-small font-semibold">Cortex AI</p><p className="truncate text-caption text-text-muted">Organization workspace</p></div>}</div>{!collapsed && <ChevronDown className="h-4 w-4 text-text-muted"/>}</div>

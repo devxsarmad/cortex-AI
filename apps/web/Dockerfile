@@ -11,6 +11,7 @@ WORKDIR /app
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000
 ARG NEXT_PUBLIC_CORTEX_API_KEY=
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV API_PROXY_TARGET=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_CORTEX_API_KEY=$NEXT_PUBLIC_CORTEX_API_KEY
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
