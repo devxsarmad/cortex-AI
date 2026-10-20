@@ -38,7 +38,8 @@ const envSchema = z.object({
   AUTH_RATE_LIMIT_MAX_REQUESTS: z.string().optional(),
   VECTOR_STORE_PROVIDER: z.enum(["memory", "qdrant"]).default("memory"),
   QDRANT_URL: z.string().url().default("http://localhost:6333"),
-  QDRANT_COLLECTION: z.string().default("cortex_chunks")
+  QDRANT_COLLECTION: z.string().default("cortex_chunks"),
+  CONVERSATION_PRIVILEGED_ACCESS: z.enum(["own", "organization"]).default("own")
 });
 
 const parsedEnv = envSchema.parse(process.env);
@@ -70,5 +71,6 @@ export const env = {
   authRateLimitMaxRequests: optionalNumber(parsedEnv.AUTH_RATE_LIMIT_MAX_REQUESTS, 10),
   vectorStoreProvider: parsedEnv.VECTOR_STORE_PROVIDER,
   qdrantUrl: parsedEnv.QDRANT_URL.replace(/\/$/, ""),
-  qdrantCollection: parsedEnv.QDRANT_COLLECTION
+  qdrantCollection: parsedEnv.QDRANT_COLLECTION,
+  conversationPrivilegedAccess: parsedEnv.CONVERSATION_PRIVILEGED_ACCESS
 };

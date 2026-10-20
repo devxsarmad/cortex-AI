@@ -62,14 +62,14 @@ export class ConversationService {
     return toDetail(await this.repository.save(conversation));
   }
 
-  async listConversations(organizationId: string): Promise<ConversationSummary[]> {
-    return (await this.repository.list(organizationId))
+  async listConversations(organizationId: string, userId: string, organizationWide = false): Promise<ConversationSummary[]> {
+    return (await this.repository.list(organizationId, organizationWide ? undefined : userId))
       .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
       .map(toSummary);
   }
 
-  async getConversation(id: string, organizationId: string): Promise<ConversationDetail> {
-    const conversation = await this.repository.findById(id, organizationId);
+  async getConversation(id: string, organizationId: string, userId: string, organizationWide = false): Promise<ConversationDetail> {
+    const conversation = await this.repository.findById(id, organizationId, organizationWide ? undefined : userId);
     if (!conversation) {
       throw new AppError("Conversation not found.", HttpStatus.NOT_FOUND);
     }
@@ -77,13 +77,14 @@ export class ConversationService {
     return toDetail(conversation);
   }
 
-  async updateMessages(id: string, input: UpdateConversationMessagesInput, organizationId: string): Promise<ConversationDetail> {
-    const conversation = await this.getConversationRecord(id, organizationId);
+  async updateMessages(id: string, input: UpdateConversationMessagesInput, organizationId: string, userId: string, organizationWide = false): Promise<ConversationDetail> {
+    const ownerScope = organizationWide ? undefined : userId;
+    const conversation = await this.getConversationRecord(id, organizationId, ownerScope);
     const now = new Date().toISOString();
     const messages = input.messages;
     const title = conversation.title === DEFAULT_TITLE ? createTitleFromMessages(messages) : conversation.title;
 
-    return toDetail(await this.updateOrThrow(id, organizationId, {
+    return toDetail(await this.updateOrThrow(id, organizationId, ownerScope, {
       title,
       messages,
       documentIds: input.documentIds ?? conversation.documentIds,
@@ -92,13 +93,14 @@ export class ConversationService {
     }));
   }
 
-  async deleteConversation(id: string, organizationId: string) {
-    await this.getConversationRecord(id, organizationId);
-    await this.repository.delete(id, organizationId);
+  async deleteConversation(id: string, organizationId: string, userId: string, organizationWide = false) {
+    const ownerScope = organizationWide ? undefined : userId;
+    await this.getConversationRecord(id, organizationId, ownerScope);
+    await this.repository.delete(id, organizationId, ownerScope);
   }
 
-  private async getConversationRecord(id: string, organizationId: string) {
-    const conversation = await this.repository.findById(id, organizationId);
+  private async getConversationRecord(id: string, organizationId: string, createdById?: string) {
+    const conversation = await this.repository.findById(id, organizationId, createdById);
     if (!conversation) {
       throw new AppError("Conversation not found.", HttpStatus.NOT_FOUND);
     }
@@ -106,8 +108,8 @@ export class ConversationService {
     return conversation;
   }
 
-  private async updateOrThrow(id: string, organizationId: string, patch: Partial<ConversationRecord>) {
-    const conversation = await this.repository.update(id, organizationId, patch);
+  private async updateOrThrow(id: string, organizationId: string, createdById: string | undefined, patch: Partial<ConversationRecord>) {
+    const conversation = await this.repository.update(id, organizationId, createdById, patch);
     if (!conversation) {
       throw new AppError("Conversation not found.", HttpStatus.NOT_FOUND);
     }

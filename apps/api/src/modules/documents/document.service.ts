@@ -142,7 +142,7 @@ export class DocumentService {
 
   async deleteDocument(id: string, organizationId: string) {
     await this.getDocument(id, organizationId);
-    await vectorStore.deleteByDocumentId(id);
+    await vectorStore.deleteByDocumentId(organizationId, id);
     await this.repository.delete(id, organizationId);
   }
 
@@ -152,7 +152,7 @@ export class DocumentService {
       .map(toSummary);
   }
 
-  async getDocument(id: string, organizationId?: string): Promise<DocumentRecord> {
+  async getDocument(id: string, organizationId: string): Promise<DocumentRecord> {
     const document = await this.repository.findById(id, organizationId);
     if (!document) {
       throw new AppError("Document not found.", HttpStatus.NOT_FOUND);
@@ -190,6 +190,7 @@ export class DocumentService {
 
     const embedding = await embeddingService.embedQuery(input.query);
     return vectorStore.search({
+      organizationId: input.organizationId,
       embedding,
       limit: input.limit,
       documentIds: scopedDocumentIds
@@ -265,6 +266,7 @@ export class DocumentService {
       await vectorStore.upsert(
         chunks.map((chunk) => ({
           id: chunk.id,
+          organizationId,
           documentId: chunk.documentId,
           filename: document.filename,
           chunkIndex: chunk.index,
@@ -333,10 +335,11 @@ export class DocumentService {
   }
 
   private async restorePersistedVectors() {
-    const documents = (await this.repository.listAll()).filter((document) => document.status === "ready");
+    const documents = (await this.repository.listAllTenants()).filter((document) => document.status === "ready");
     const points = documents.flatMap((document) =>
       document.chunks.map((chunk) => ({
         id: chunk.id,
+        organizationId: document.organizationId,
         documentId: chunk.documentId,
         filename: document.filename,
         chunkIndex: chunk.index,

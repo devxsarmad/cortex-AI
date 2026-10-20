@@ -10,6 +10,7 @@ import {
   searchDocuments,
   uploadDocument
 } from "./document.controller.js";
+import { requireRole } from "../../shared/middleware/require-role.js";
 
 export const documentRouter = Router();
 
@@ -25,6 +26,6 @@ documentRouter.get("/", asyncHandler(listDocuments));
 documentRouter.post("/search", asyncHandler(searchDocuments));
 documentRouter.get("/:id/chunks", asyncHandler(listDocumentChunks));
 documentRouter.get("/:id", asyncHandler(getDocument));
-documentRouter.delete("/:id", asyncHandler(deleteDocument));
-documentRouter.post("/:id/retry", asyncHandler(retryDocument));
-documentRouter.post("/", upload.single("file"), asyncHandler(uploadDocument));
+documentRouter.delete("/:id", requireRole("OWNER", "ADMIN"), asyncHandler(deleteDocument));
+documentRouter.post("/:id/retry", requireRole("OWNER", "ADMIN"), asyncHandler(retryDocument));
+documentRouter.post("/", requireRole("OWNER", "ADMIN"), upload.single("file"), asyncHandler(uploadDocument));

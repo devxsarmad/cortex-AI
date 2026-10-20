@@ -4,6 +4,7 @@ export type AuthUser = { id: string; email: string; name: string; organizationId
 export type AuthSession = { accessToken: string; user: AuthUser };
 export type LoginInput = { email: string; password: string };
 export type RegisterInput = LoginInput & { name: string; organizationName: string };
+export type AcceptInvitationInput = { token: string; name: string; password: string };
 
 const authRequest = async (path: string, body?: object): Promise<AuthSession> => {
   const response = await fetch(`${API_URL}/api/auth/${path}`, {
@@ -19,6 +20,7 @@ const authRequest = async (path: string, body?: object): Promise<AuthSession> =>
 export const authApi = {
   login: (input: LoginInput) => authRequest("login", input),
   register: (input: RegisterInput) => authRequest("register", input),
+  acceptInvitation: (input: AcceptInvitationInput) => authRequest("invitations/accept", input),
   refresh: () => authRequest("refresh"),
   logout: async () => {
     const response = await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" });

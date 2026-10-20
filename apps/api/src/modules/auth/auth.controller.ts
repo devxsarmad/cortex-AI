@@ -2,7 +2,7 @@ import type { RequestHandler, Response } from "express";
 import { env } from "../../config/env.js";
 import { HttpStatus } from "../../shared/constants/http-status.js";
 import { authService } from "./auth.service.js";
-import { loginSchema, registerSchema } from "./auth.validation.js";
+import { acceptInvitationSchema, loginSchema, registerSchema } from "./auth.validation.js";
 
 export const REFRESH_COOKIE = "cortex_refresh";
 const refreshCookieOptions = {
@@ -20,6 +20,12 @@ const setRefreshCookie = (response: Response, token: string, expires: Date) => r
 
 export const register: RequestHandler = async (request, response) => {
   const session = await authService.register(registerSchema.parse(request.body));
+  setRefreshCookie(response, session.refreshToken, session.refreshExpiresAt);
+  response.status(HttpStatus.CREATED).json({ accessToken: session.accessToken, user: session.user });
+};
+
+export const acceptInvitation: RequestHandler = async (request, response) => {
+  const session = await authService.acceptInvitation(acceptInvitationSchema.parse(request.body));
   setRefreshCookie(response, session.refreshToken, session.refreshExpiresAt);
   response.status(HttpStatus.CREATED).json({ accessToken: session.accessToken, user: session.user });
 };

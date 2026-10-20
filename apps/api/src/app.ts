@@ -13,6 +13,7 @@ import { requestLogger } from "./shared/middleware/request-logger.js";
 import { securityHeaders } from "./shared/middleware/security-headers.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { requireAuth } from "./shared/middleware/auth.js";
+import { memberRouter } from "./modules/members/member.routes.js";
 
 export const createApp = () => {
   const app = express();
@@ -49,6 +50,7 @@ export const createApp = () => {
   app.use("/api/chat", requireAuth, chatRouter);
   app.use("/api/conversations", requireAuth, conversationRouter);
   app.use("/api/documents", requireAuth, documentRouter);
+  app.use("/api/members", requireAuth, memberRouter);
   app.use(errorHandler);
 
   return app;

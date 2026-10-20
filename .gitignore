@@ -9,4 +9,5 @@ dist
 coverage
 .cortex-data
 npm-debug.log*
+artifacts
 *.tsbuildinfo

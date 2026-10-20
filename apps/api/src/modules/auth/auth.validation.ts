@@ -11,3 +11,8 @@ export const registerSchema = z.object({
 }).strict();
 
 export const loginSchema = z.object({ email, password }).strict();
+export const acceptInvitationSchema = z.object({
+  token: z.string().min(1),
+  name: z.string().trim().min(1).max(100),
+  password
+}).strict();

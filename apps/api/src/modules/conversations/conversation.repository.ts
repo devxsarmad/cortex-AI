@@ -1,15 +1,16 @@
 import type { Prisma } from "@prisma/client";
 import { randomUUID } from "node:crypto";
 import { prisma } from "../../infrastructure/database/prisma.js";
+import { tenantData } from "../../infrastructure/database/tenant-data.js";
 import type { ChatMessage } from "../chat/chat.types.js";
 import type { ConversationRecord } from "./conversation.types.js";
 
 export interface ConversationRepository {
   save(conversation: ConversationRecord): Promise<ConversationRecord>;
-  list(organizationId: string): Promise<ConversationRecord[]>;
-  findById(id: string, organizationId: string): Promise<ConversationRecord | undefined>;
-  update(id: string, organizationId: string, patch: Partial<ConversationRecord>): Promise<ConversationRecord | undefined>;
-  delete(id: string, organizationId: string): Promise<boolean>;
+  list(organizationId: string, createdById?: string): Promise<ConversationRecord[]>;
+  findById(id: string, organizationId: string, createdById?: string): Promise<ConversationRecord | undefined>;
+  update(id: string, organizationId: string, createdById: string | undefined, patch: Partial<ConversationRecord>): Promise<ConversationRecord | undefined>;
+  delete(id: string, organizationId: string, createdById?: string): Promise<boolean>;
 }
 
 type ConversationWithMessages = Prisma.ConversationGetPayload<{ include: { messages: true } }>;
@@ -23,35 +24,40 @@ const toRecord = (conversation?: ConversationWithMessages | null): ConversationR
 
 export class PrismaConversationRepository implements ConversationRepository {
   async save(conversation: ConversationRecord) {
-    return toRecord(await prisma.conversation.create({ data: {
-      id: conversation.id, organizationId: conversation.organizationId, createdById: conversation.createdById,
+    return toRecord(await tenantData(conversation.organizationId).conversations.create({
+      id: conversation.id, createdById: conversation.createdById,
       title: conversation.title, documentIds: conversation.documentIds, messageCount: conversation.messageCount,
       createdAt: new Date(conversation.createdAt), updatedAt: new Date(conversation.updatedAt)
-    }, include: includeMessages }))!;
+    }, includeMessages) as ConversationWithMessages)!;
   }
-  async list(organizationId: string) {
-    return (await prisma.conversation.findMany({ where: { organizationId }, include: includeMessages })).map((item) => toRecord(item)!);
+  async list(organizationId: string, createdById?: string) {
+    return (await tenantData(organizationId).conversations.list(createdById, includeMessages)).map((item) => toRecord(item as ConversationWithMessages)!);
   }
-  async findById(id: string, organizationId: string) {
-    return toRecord(await prisma.conversation.findFirst({ where: { id, organizationId }, include: includeMessages }));
+  async findById(id: string, organizationId: string, createdById?: string) {
+    return toRecord(await tenantData(organizationId).conversations.find(id, createdById, includeMessages) as ConversationWithMessages | null);
   }
-  async update(id: string, organizationId: string, patch: Partial<ConversationRecord>) {
-    const existing = await this.findById(id, organizationId);
+  async update(id: string, organizationId: string, createdById: string | undefined, patch: Partial<ConversationRecord>) {
+    const existing = await this.findById(id, organizationId, createdById);
     if (!existing) return undefined;
     const next = { ...existing, ...patch };
     return prisma.$transaction(async (tx) => {
-      if (patch.messages) await tx.message.deleteMany({ where: { conversationId: id, organizationId } });
-      return toRecord(await tx.conversation.update({ where: { id }, data: {
-        title: next.title, documentIds: next.documentIds, messageCount: next.messageCount, updatedAt: new Date(next.updatedAt),
-        ...(patch.messages ? { messages: { create: next.messages.map((message, position) => ({
-          id: randomUUID(), organizationId, createdById: message.role === "user" ? next.createdById : null,
-          role: message.role, content: message.content, position,
-        })) } } : {})
-      }, include: includeMessages }))!;
+      const scoped = tenantData(organizationId, tx);
+      const updated = await scoped.conversations.update(id, createdById, {
+        title: next.title, documentIds: next.documentIds, messageCount: next.messageCount, updatedAt: new Date(next.updatedAt)
+      });
+      if (updated.count === 0) return undefined;
+      if (patch.messages) {
+        await scoped.messages.deleteForConversation(id);
+        await scoped.messages.createMany(next.messages.map((message, position) => ({
+          id: randomUUID(), conversationId: id, createdById: message.role === "user" ? next.createdById : null,
+          role: message.role, content: message.content, position
+        })));
+      }
+      return toRecord(await scoped.conversations.find(id, createdById, includeMessages) as ConversationWithMessages | null);
     });
   }
-  async delete(id: string, organizationId: string) {
-    return (await prisma.conversation.deleteMany({ where: { id, organizationId } })).count > 0;
+  async delete(id: string, organizationId: string, createdById?: string) {
+    return (await tenantData(organizationId).conversations.delete(id, createdById)).count > 0;
   }
 }
 

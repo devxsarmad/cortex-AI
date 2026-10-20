@@ -22,6 +22,7 @@ model Organization {
   conversations Conversation[]
   messages      Message[]
   refreshTokens RefreshToken[]
+  invitations   Invitation[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 }
@@ -133,4 +134,19 @@ model RefreshToken {
 
   @@index([organizationId])
   @@index([userId])
+}
+
+model Invitation {
+  id             String         @id @default(uuid())
+  organizationId String
+  email          String
+  role           MembershipRole @default(MEMBER)
+  tokenHash      String         @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId])
+  @@index([email])
 }

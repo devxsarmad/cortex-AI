@@ -43,15 +43,16 @@ export class MemoryVectorStore implements VectorStore {
     const documentIds = new Set(input.documentIds ?? (input.documentId ? [input.documentId] : []));
 
     return [...this.points.values()]
+      .filter((point) => point.organizationId === input.organizationId)
       .filter((point) => documentIds.size === 0 || documentIds.has(point.documentId))
       .map((point) => toResult(point, cosineSimilarity(input.embedding, point.embedding)))
       .sort((left, right) => right.score - left.score)
       .slice(0, input.limit);
   }
 
-  async deleteByDocumentId(documentId: string) {
+  async deleteByDocumentId(organizationId: string, documentId: string) {
     for (const [pointId, point] of this.points.entries()) {
-      if (point.documentId === documentId) {
+      if (point.organizationId === organizationId && point.documentId === documentId) {
         this.points.delete(pointId);
       }
     }

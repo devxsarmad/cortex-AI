@@ -59,18 +59,18 @@ export class QdrantVectorStore implements VectorStore {
     await this.ensureCollection(input.embedding.length);
     const documentIds = input.documentIds ?? (input.documentId ? [input.documentId] : []);
 
-    const filter = documentIds.length > 0
-      ? {
+    const filter = {
           must: [
+            { key: "organizationId", match: { value: input.organizationId } },
+            ...(documentIds.length > 0 ? [
             {
               key: "documentId",
               match: {
                 ...(documentIds.length === 1 ? { value: documentIds[0] } : { any: documentIds })
               }
-            }
+            }] : [])
           ]
-        }
-      : undefined;
+        };
 
     const response = await qdrantRequest<{ result: QdrantSearchPoint[] }>(
       `/collections/${env.qdrantCollection}/points/search`,
@@ -97,12 +97,13 @@ export class QdrantVectorStore implements VectorStore {
     });
   }
 
-  async deleteByDocumentId(documentId: string) {
+  async deleteByDocumentId(organizationId: string, documentId: string) {
     await qdrantRequest(`/collections/${env.qdrantCollection}/points/delete?wait=true`, {
       method: "POST",
       body: JSON.stringify({
         filter: {
           must: [
+            { key: "organizationId", match: { value: organizationId } },
             {
               key: "documentId",
               match: {

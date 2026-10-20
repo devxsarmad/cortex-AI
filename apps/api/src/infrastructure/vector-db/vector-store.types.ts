@@ -4,6 +4,7 @@ export type VectorStoreProvider = "memory" | "qdrant";
 
 export type VectorPoint = {
   id: string;
+  organizationId: string;
   documentId: string;
   filename: string;
   chunkIndex: number;
@@ -20,6 +21,7 @@ export type VectorSearchResult = Omit<VectorPoint, "embedding"> & {
 };
 
 export type VectorSearchInput = {
+  organizationId: string;
   embedding: number[];
   limit: number;
   documentId?: string;
@@ -30,5 +32,5 @@ export interface VectorStore {
   readonly provider: VectorStoreProvider;
   upsert(points: VectorPoint[]): Promise<void>;
   search(input: VectorSearchInput): Promise<VectorSearchResult[]>;
-  deleteByDocumentId(documentId: string): Promise<void>;
+  deleteByDocumentId(organizationId: string, documentId: string): Promise<void>;
 }

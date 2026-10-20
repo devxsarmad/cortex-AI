@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from "
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usePathname, useRouter } from "next/navigation";
 import { setAccessToken } from "@/services/api-client";
-import { authApi, type AuthSession, type AuthUser, type LoginInput, type RegisterInput } from "@/services/auth.service";
+import { authApi, type AcceptInvitationInput, type AuthSession, type AuthUser, type LoginInput, type RegisterInput } from "@/services/auth.service";
 import { CortexLoader } from "@/components/ui/cortex-loader";
 import { Toast } from "@/components/ui/toast";
 
@@ -14,6 +14,7 @@ type AuthContextValue = {
   loading: boolean;
   login: (input: LoginInput) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
+  acceptInvitation: (input: AcceptInvitationInput) => Promise<void>;
   logout: () => Promise<void>;
 };
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -43,6 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
   const loginMutation = useMutation({ mutationFn: authApi.login, onSuccess: acceptSession });
   const registerMutation = useMutation({ mutationFn: authApi.register, onSuccess: acceptSession });
+  const invitationMutation = useMutation({ mutationFn: authApi.acceptInvitation, onSuccess: acceptSession });
   const logoutMutation = useMutation({
     mutationFn: authApi.logout,
     onSettled: () => {
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: !isPublicAuthPage && sessionQuery.isPending,
     login: async (input) => { await loginMutation.mutateAsync(input); },
     register: async (input) => { await registerMutation.mutateAsync(input); },
+    acceptInvitation: async (input) => { await invitationMutation.mutateAsync(input); },
     logout: async () => { await logoutMutation.mutateAsync(); }
   }}>{children}<Toast open={sessionExpired} onOpenChange={setSessionExpired} tone="danger" title="Your session has expired" description="Sign in again to continue securely." /></AuthContext.Provider>;
 }
